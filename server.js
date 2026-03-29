@@ -87,6 +87,23 @@ function wrapText(text, maxLength) {
   return lines;
 }
 
+function wrapTitle(title, maxChars) {
+  if (title.length <= maxChars) return [title];
+  const words = title.split(' ');
+  const lines = [];
+  let current = '';
+  for (const w of words) {
+    if ((current + w).length > maxChars && current) {
+      lines.push(current);
+      current = w;
+    } else {
+      current = current ? current + ' ' + w : w;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
 function escapeXml(str) {
   if (!str) return '';
   return str.replace(/[<>&'"]/g, c => {
@@ -128,6 +145,7 @@ app.post('/export', async (req, res) => {
     let chartBuffer;
     try {
       chartBuffer = await generateChartImage(aspects, scores, maxScale);
+      console.log('Chart buffer size:', chartBuffer.length, 'bytes');
     } catch (err) {
       console.error('Chart generation failed, using placeholder:', err);
       chartBuffer = await sharp({
@@ -142,16 +160,17 @@ app.post('/export', async (req, res) => {
 
     // 3. Fetch poster image as buffer
     const posterResponse = await fetch(posterUrl);
-    if (!posterResponse.ok) throw new Error('Failed to fetch poster');
+    if (!posterResponse.ok) throw new Error(`Failed to fetch poster: ${posterResponse.status}`);
     const posterBuffer = await posterResponse.buffer();
+    console.log('Poster buffer size:', posterBuffer.length, 'bytes');
 
     // 4. Create composite image
-    const width = 1000;
-    const height = 1000;
+    const compWidth = 1000;
+    const compHeight = 1000;
     let composite = sharp({
       create: {
-        width,
-        height,
+        width: compWidth,
+        height: compHeight,
         channels: 4,
         background: { r: 255, g: 255, b: 255, alpha: 1 }
       }
@@ -165,11 +184,12 @@ app.post('/export', async (req, res) => {
     const posterResized = await sharp(posterBuffer)
       .resize(posterWidth, posterHeight, { fit: 'cover' })
       .toBuffer();
+    console.log('Poster resized size:', posterResized.length, 'bytes');
 
     // Place chart
     const chartWidth = 500;
     const chartHeight = 500;
-    const chartX = width - chartWidth - 80;
+    const chartX = compWidth - chartWidth - 80;
     const chartY = posterY + (posterHeight - chartHeight) / 2;
 
     composite = composite.composite([
@@ -178,7 +198,7 @@ app.post('/export', async (req, res) => {
     ]);
 
     // 5. Build SVG overlay for all text elements
-    let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
+    let svg = `<svg width="${compWidth}" height="${compHeight}" xmlns="http://www.w3.org/2000/svg">`;
     svg += `<style>
       .title { font-family: 'Segoe UI', sans-serif; font-size: 40px; font-weight: bold; fill: #333; text-anchor: middle; }
       .overall { font-family: 'Segoe UI', sans-serif; font-size: 20px; fill: #1abc9c; text-anchor: middle; }
@@ -189,11 +209,21 @@ app.post('/export', async (req, res) => {
       .app-name { font-family: 'Segoe UI', sans-serif; font-size: 20px; font-weight: bold; fill: #333; text-anchor: start; }
     </style>`;
 
-    svg += `<text x="500" y="70" class="title">${escapeXml(title)}</text>`;
-    svg += `<text x="500" y="110" class="overall">Overall Rating: ${overall}/${maxScale}</text>`;
-    if (dateWatched) {
-      svg += `<text x="500" y="145" class="date">Watched: ${escapeXml(dateWatched)}</text>`;
+    // Title (wrapped)
+    const titleLines = wrapTitle(title, 40);
+    let titleY = 70;
+    for (const line of titleLines) {
+      svg += `<text x="500" y="${titleY}" class="title">${escapeXml(line)}</text>`;
+      titleY += 45;
     }
+
+    // Overall rating
+    svg += `<text x="500" y="${titleY + 10}" class="overall">Overall Rating: ${overall}/${maxScale}</text>`;
+    if (dateWatched) {
+      svg += `<text x="500" y="${titleY + 50}" class="date">Watched: ${escapeXml(dateWatched)}</text>`;
+    }
+
+    // Review text
     if (reviewText) {
       const lines = wrapText(reviewText, 60);
       let y = posterY + posterHeight + 30;
@@ -203,11 +233,12 @@ app.post('/export', async (req, res) => {
       }
     }
 
-    const bottomY = height - 60;
+    // Logo and app name at bottom
+    const bottomY = compHeight - 60;
     const logoSize = 40;
     const textWidth = 120; // rough width of "Cinegraphs"
     const totalWidth = logoSize + 10 + textWidth;
-    const startX = (width - totalWidth) / 2;
+    const startX = (compWidth - totalWidth) / 2;
     svg += `
       <rect x="${startX}" y="${bottomY - logoSize}" width="${logoSize}" height="${logoSize}" class="logo-square" />
       <text x="${startX + logoSize/2}" y="${bottomY - logoSize + 25}" class="logo-text">Logo</text>
@@ -220,6 +251,7 @@ app.post('/export', async (req, res) => {
 
     // 6. Output final image
     const finalBuffer = await composite.toBuffer();
+    console.log('Final image size:', finalBuffer.length, 'bytes');
     res.set('Content-Type', 'image/png');
     res.set('Content-Disposition', `attachment; filename="${title.replace(/[^a-z0-9]/gi, '_')}_review.png"`);
     res.send(finalBuffer);
