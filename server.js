@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const sharp = require('sharp');
+const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 
 const app = express();
 app.use(cors());
@@ -9,12 +10,11 @@ app.use(express.json({ limit: '10mb' }));
 
 // ==================== CONFIGURATION ====================
 const FANART_API_KEY = 'a6a74f76cc6e382e1f56ee0e4a4a9fb4';
-const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY;
-if (!BROWSERLESS_API_KEY) {
-  console.error('Missing BROWSERLESS_API_KEY environment variable');
-  process.exit(1);
-}
-const BROWSERLESS_URL = `https://chrome.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`;
+
+// ChartJS canvas setup
+const width = 500;
+const height = 500;
+const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
 
 // ==================== HELPER: Get poster from Fanart.tv ====================
 async function getPosterUrl(tmdbId) {
@@ -32,79 +32,41 @@ async function getPosterUrl(tmdbId) {
   return null;
 }
 
-// ==================== HELPER: Generate chart image with Browserless ====================
+// ==================== HELPER: Generate chart image locally ====================
 async function generateChartImage(aspects, scores, maxScale) {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-      <style>
-        body { margin: 0; padding: 0; background: white; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { width: 500px; height: 500px; }
-      </style>
-    </head>
-    <body>
-      <canvas id="chart" width="500" height="500"></canvas>
-      <script>
-        const ctx = document.getElementById('chart').getContext('2d');
-        new Chart(ctx, {
-          type: 'radar',
-          data: {
-            labels: ${JSON.stringify(aspects)},
-            datasets: [{
-              data: ${JSON.stringify(scores)},
-              backgroundColor: 'rgba(26, 188, 156, 0.2)',
-              borderColor: '#1abc9c',
-              borderWidth: 2,
-              pointBackgroundColor: '#1abc9c',
-              pointRadius: 5
-            }]
-          },
-          options: {
-            responsive: false,
-            maintainAspectRatio: true,
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
-            scales: {
-              r: {
-                beginAtZero: true,
-                max: ${maxScale},
-                ticks: { display: false, stepSize: 1 },
-                grid: { color: '#ddd' },
-                pointLabels: { color: '#333' }
-              }
-            }
-          }
-        });
-      </script>
-    </body>
-    </html>
-  `;
-
-  const payload = {
-    html: html,
-    options: {
-      type: 'png',
-      quality: 80
+  const configuration = {
+    type: 'radar',
+    data: {
+      labels: aspects,
+      datasets: [{
+        label: 'Rating',
+        data: scores,
+        backgroundColor: 'rgba(26, 188, 156, 0.2)',
+        borderColor: '#1abc9c',
+        borderWidth: 2,
+        pointBackgroundColor: '#1abc9c',
+        pointRadius: 5
+      }]
     },
-    viewport: { width: 500, height: 500 },
-    element: '#chart',
-    delay: 500
+    options: {
+      responsive: false,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      },
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: maxScale,
+          ticks: { display: false, stepSize: 1 },
+          grid: { color: '#ddd' },
+          pointLabels: { color: '#333' }
+        }
+      }
+    }
   };
-
-  const response = await fetch(BROWSERLESS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Browserless error:', response.status, errorText);
-    throw new Error(`Browserless request failed: ${response.status} - ${errorText}`);
-  }
-
-  const buffer = await response.buffer();
+  const buffer = await chartJSNodeCanvas.renderToBuffer(configuration);
   return buffer;
 }
 
@@ -162,13 +124,12 @@ app.post('/export', async (req, res) => {
     }
     console.log('Poster URL:', posterUrl);
 
-    // 2. Generate chart image (with fallback)
+    // 2. Generate chart image
     let chartBuffer;
     try {
       chartBuffer = await generateChartImage(aspects, scores, maxScale);
     } catch (err) {
       console.error('Chart generation failed, using placeholder:', err);
-      // Create a simple white square as fallback
       chartBuffer = await sharp({
         create: {
           width: 500,
