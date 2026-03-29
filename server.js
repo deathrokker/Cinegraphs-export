@@ -81,17 +81,15 @@ async function generateChartImage(aspects, scores, maxScale) {
     </html>
   `;
 
-  // Correct payload structure for Browserless screenshot API
   const payload = {
     html: html,
     options: {
       type: 'png',
-      quality: 80,
-      element: '#chart',
-      screenshot: true,
-      delay: 500
+      quality: 80
     },
-    viewport: { width: 500, height: 500 }
+    viewport: { width: 500, height: 500 },
+    element: '#chart',
+    delay: 500
   };
 
   const response = await fetch(BROWSERLESS_URL, {
@@ -162,7 +160,6 @@ app.post('/export', async (req, res) => {
     if (!posterUrl) {
       posterUrl = `https://placehold.co/200x300?text=${encodeURIComponent(title)}`;
     }
-    // Log the poster URL so we can see what's being used
     console.log('Poster URL:', posterUrl);
 
     // 2. Generate chart image (with fallback)
