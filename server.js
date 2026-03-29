@@ -146,6 +146,8 @@ app.post('/export', async (req, res) => {
     try {
       chartBuffer = await generateChartImage(aspects, scores, maxScale);
       console.log('Chart buffer size:', chartBuffer.length, 'bytes');
+      const chartMeta = await sharp(chartBuffer).metadata();
+      console.log('Chart metadata:', chartMeta);
     } catch (err) {
       console.error('Chart generation failed, using placeholder:', err);
       chartBuffer = await sharp({
@@ -163,6 +165,8 @@ app.post('/export', async (req, res) => {
     if (!posterResponse.ok) throw new Error(`Failed to fetch poster: ${posterResponse.status}`);
     const posterBuffer = await posterResponse.buffer();
     console.log('Poster buffer size:', posterBuffer.length, 'bytes');
+    const posterMeta = await sharp(posterBuffer).metadata();
+    console.log('Poster metadata:', posterMeta);
 
     // 4. Create composite image
     const compWidth = 1000;
@@ -185,6 +189,8 @@ app.post('/export', async (req, res) => {
       .resize(posterWidth, posterHeight, { fit: 'cover' })
       .toBuffer();
     console.log('Poster resized size:', posterResized.length, 'bytes');
+    const resizedMeta = await sharp(posterResized).metadata();
+    console.log('Resized poster metadata:', resizedMeta);
 
     // Place chart
     const chartWidth = 500;
@@ -192,10 +198,15 @@ app.post('/export', async (req, res) => {
     const chartX = compWidth - chartWidth - 80;
     const chartY = posterY + (posterHeight - chartHeight) / 2;
 
+    // Add poster and chart as composites
     composite = composite.composite([
       { input: posterResized, left: posterX, top: posterY },
       { input: chartBuffer, left: chartX, top: chartY }
     ]);
+
+    // Check intermediate composite (without SVG)
+    const tempComposite = await composite.clone().toBuffer();
+    console.log('After poster+chart composite, buffer size:', tempComposite.length, 'bytes');
 
     // 5. Build SVG overlay for all text elements
     let svg = `<svg width="${compWidth}" height="${compHeight}" xmlns="http://www.w3.org/2000/svg">`;
@@ -247,9 +258,12 @@ app.post('/export', async (req, res) => {
 
     svg += `</svg>`;
     const svgBuffer = Buffer.from(svg);
+    console.log('SVG buffer size:', svgBuffer.length, 'bytes');
+
+    // Add SVG as final composite
     composite = composite.composite([{ input: svgBuffer, left: 0, top: 0 }]);
 
-    // 6. Output final image
+    // Final output
     const finalBuffer = await composite.toBuffer();
     console.log('Final image size:', finalBuffer.length, 'bytes');
     res.set('Content-Type', 'image/png');
