@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        /* [All styles unchanged – same as previous version] */
+        /* Theme variables (default green) */
         :root {
             --bg-body: #f0f2f5;
             --bg-app: white;
@@ -25,6 +25,7 @@
             --table-header: #2c3e50;
             --attribution-bg: rgba(0,0,0,0.05);
             --chart-grid: #ddd;
+            --chart-dataset: #1abc9c;
         }
         body.dark {
             --bg-body: #1a1a2e;
@@ -41,6 +42,7 @@
             --table-header: #0f172a;
             --attribution-bg: rgba(255,255,255,0.05);
             --chart-grid: rgba(255,255,255,0.2);
+            --chart-dataset: #1abc9c;
         }
         * {
             box-sizing: border-box;
@@ -94,6 +96,20 @@
             letter-spacing: 1px;
             flex-grow: 1;
             text-align: center;
+        }
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .theme-selector {
+            background: var(--tab-inactive);
+            border: none;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
         }
         .tabs {
             display: flex;
@@ -372,6 +388,9 @@
             transition: 0.2s;
             font-size: 0.85rem;
         }
+        button:hover {
+            background: var(--button-hover);
+        }
         .reviews-table {
             width: 100%;
             border-collapse: collapse;
@@ -403,7 +422,7 @@
             font-size: 0.7rem;
         }
         .rewatch-badge {
-            background: #1abc9c;
+            background: var(--button-primary);
             color: white;
             font-size: 0.7rem;
             padding: 2px 6px;
@@ -450,7 +469,7 @@
             border-radius: 50%;
         }
         input:checked + .slider {
-            background-color: #1abc9c;
+            background-color: var(--button-primary);
         }
         input:checked + .slider:before {
             transform: translateX(22px);
@@ -560,51 +579,20 @@
             margin-left: auto;
         }
         @media (max-width: 600px) {
-            body {
-                padding: 8px;
-            }
-            .app-container {
-                border-radius: 16px;
-            }
-            .header h1 {
-                font-size: 1.2rem;
-            }
-            .logo-placeholder {
-                width: 48px;
-                height: 48px;
-            }
-            .overall-rating-circle {
-                width: 70px;
-                height: 70px;
-                font-size: 18px;
-            }
-            .tab-btn {
-                padding: 8px 12px;
-                font-size: 0.8rem;
-            }
-            .review-grid {
-                gap: 16px;
-            }
-            .left-panel, .right-panel {
-                min-width: 100%;
-            }
-            .button-group {
-                gap: 8px;
-            }
-            button {
-                padding: 6px 12px;
-                font-size: 0.8rem;
-            }
+            body { padding: 8px; }
+            .app-container { border-radius: 16px; }
+            .header h1 { font-size: 1.2rem; }
+            .logo-placeholder { width: 48px; height: 48px; }
+            .overall-rating-circle { width: 70px; height: 70px; font-size: 18px; }
+            .tab-btn { padding: 8px 12px; font-size: 0.8rem; }
+            .review-grid { gap: 16px; }
+            .left-panel, .right-panel { min-width: 100%; }
+            .button-group { gap: 8px; }
+            button { padding: 6px 12px; font-size: 0.8rem; }
         }
         @media (max-width: 480px) {
-            .filter-sort-bar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .pagination-controls {
-                margin-left: 0;
-                justify-content: center;
-            }
+            .filter-sort-bar { flex-direction: column; align-items: stretch; }
+            .pagination-controls { margin-left: 0; justify-content: center; }
         }
     </style>
 </head>
@@ -613,10 +601,19 @@
     <div class="header">
         <div class="logo-placeholder">Logo</div>
         <h1>Cinegraphs</h1>
-        <div class="theme-toggle">
-            <span>🌞</span>
-            <label class="toggle-switch"><input type="checkbox" id="darkModeToggle"><span class="slider"></span></label>
-            <span>🌙</span>
+        <div class="header-controls">
+            <select id="colorThemeSelect" class="theme-selector">
+                <option value="green">🎨 Green (Default)</option>
+                <option value="blue">🔵 Blue</option>
+                <option value="purple">🟣 Purple</option>
+                <option value="orange">🟠 Orange</option>
+                <option value="pink">🌸 Pink</option>
+            </select>
+            <div class="theme-toggle">
+                <span>🌞</span>
+                <label class="toggle-switch"><input type="checkbox" id="darkModeToggle"><span class="slider"></span></label>
+                <span>🌙</span>
+            </div>
         </div>
     </div>
     <div class="tabs">
@@ -624,6 +621,7 @@
         <button class="tab-btn" data-tab="trends">📊 Trends & History</button>
     </div>
 
+    <!-- Review Tab -->
     <div id="review-tab" class="tab-content active">
         <div class="review-grid">
             <div class="left-panel">
@@ -674,13 +672,16 @@
         </div>
     </div>
 
+    <!-- Trends Tab -->
     <div id="trends-tab" class="tab-content">
         <div class="chart-toggle">
             <label>📊 Display:</label>
             <select id="trendsChartType">
-                <option value="genre">Genre Ratings (Bar/Pie)</option>
+                <option value="genre">Genre Ratings (Bar)</option>
                 <option value="rating_dist">Rating Distribution</option>
                 <option value="heatmap">Director/Genre Heatmap</option>
+                <option value="director">Director Stats</option>
+                <option value="actor">Actor Stats</option>
                 <option value="accuracy">Rewatch Accuracy</option>
                 <option value="trends">Trends Over Time</option>
                 <option value="diary">Viewing Diary</option>
@@ -693,15 +694,13 @@
         <div class="trends-stats" id="trendsChartContainer">
             <canvas id="genreChart" width="400" height="300" style="max-width:100%; height:auto; background: var(--bg-app);"></canvas>
         </div>
-        <div class="trends-stats" id="heatmapTableContainer" style="display:none;">
-            <table class="genre-table" id="heatmapTable"><thead><tr><th>Director \\ Genre</th></tr></thead><tbody></tbody></table>
-        </div>
+        <div class="trends-stats" id="heatmapTableContainer" style="display:none;"></div>
         <div class="trends-stats" id="accuracyStats" style="display:none; text-align:center; padding:20px;"></div>
         <div class="trends-stats" id="genreTableContainer">
             <table class="genre-table" id="genreTable">
                 <thead><th data-sort="genre">Genre</th><th data-sort="count"># of Films</th><th data-sort="avg">Avg. Rating</th></thead>
                 <tbody></tbody>
-            </table>
+             ?>
         </div>
         <h3>Review History</h3>
         <div class="filter-sort-bar">
@@ -716,7 +715,7 @@
                 <div class="page-nav"><button id="prevPageBtn" disabled>◀ Prev</button><span id="pageInfo"></span><button id="nextPageBtn">Next ▶</button></div>
             </div>
         </div>
-        <div style="overflow-x: auto;"><table class="reviews-table" id="reviewsTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
+        <div style="overflow-x: auto;"><table class="reviews-table" id="reviewsTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody>?</table></div>
     </div>
 
     <div class="attribution">
@@ -755,14 +754,65 @@
     const editStatusSpan = document.getElementById('editStatus');
     const trendsChartTypeSelect = document.getElementById('trendsChartType');
     const isRewatchCheckbox = document.getElementById('isRewatchCheckbox');
+    const colorThemeSelect = document.getElementById('colorThemeSelect');
 
     let radarChart = null, genreChart = null;
     let aspectNameInputs = [], scoreSelects = [];
     const ASPECT_COUNT = 5;
-    let currentMovie = { id: null, title: "", posterPath: "", fullPosterUrl: "", genres: [], director: "" };
+    let currentMovie = { id: null, title: "", posterPath: "", fullPosterUrl: "", genres: [], director: "", cast: [] };
     let manualPosterOverride = null;
     let editingReviewId = null;
     let currentTrendsChartType = 'genre';
+
+    // Theme colors (primary, hover)
+    const themes = {
+        green: { primary: '#1abc9c', hover: '#16a085', dataset: '#1abc9c' },
+        blue: { primary: '#3498db', hover: '#2980b9', dataset: '#3498db' },
+        purple: { primary: '#9b59b6', hover: '#8e44ad', dataset: '#9b59b6' },
+        orange: { primary: '#e67e22', hover: '#d35400', dataset: '#e67e22' },
+        pink: { primary: '#e84393', hover: '#c2185b', dataset: '#e84393' }
+    };
+    function setColorTheme(themeName) {
+        const theme = themes[themeName];
+        if (!theme) return;
+        document.documentElement.style.setProperty('--button-primary', theme.primary);
+        document.documentElement.style.setProperty('--button-hover', theme.hover);
+        document.documentElement.style.setProperty('--chart-dataset', theme.dataset);
+        // Update charts if they exist
+        if (radarChart) {
+            radarChart.data.datasets[0].borderColor = theme.primary;
+            radarChart.data.datasets[0].pointBackgroundColor = theme.primary;
+            radarChart.data.datasets[0].backgroundColor = `${theme.primary}33`; // 20% opacity
+            radarChart.update();
+        }
+        if (genreChart && genreChart.config.type === 'bar') {
+            genreChart.data.datasets[0].backgroundColor = theme.primary;
+            genreChart.update();
+        }
+        // Also update the slider toggle background
+        const slider = document.querySelector('.slider');
+        if (slider && darkModeToggle.checked) {
+            slider.style.backgroundColor = theme.primary;
+        }
+        // Update overall rating circle border
+        const ratingCircle = document.querySelector('.overall-rating-circle');
+        if (ratingCircle) ratingCircle.style.borderColor = theme.primary;
+        // Update edit status color
+        if (editStatusSpan) editStatusSpan.style.color = theme.primary;
+    }
+    colorThemeSelect.addEventListener('change', (e) => {
+        localStorage.setItem('colorTheme', e.target.value);
+        setColorTheme(e.target.value);
+    });
+    function initColorTheme() {
+        const saved = localStorage.getItem('colorTheme');
+        if (saved && themes[saved]) {
+            colorThemeSelect.value = saved;
+            setColorTheme(saved);
+        } else {
+            setColorTheme('green');
+        }
+    }
 
     reviewTextarea.addEventListener('input', () => { charCountSpan.innerText = reviewTextarea.value.length; });
     trendsChartTypeSelect.addEventListener('change', (e) => {
@@ -770,41 +820,244 @@
         renderTrends();
     });
 
-    // Theme
-    function initTheme() { if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark'); darkModeToggle.checked = true; } updateChartTheme(); }
-    darkModeToggle.addEventListener('change', (e) => { document.body.classList.toggle('dark', e.target.checked); localStorage.setItem('darkMode', e.target.checked); updateChartTheme(); if(radarChart) radarChart.update(); if(genreChart) genreChart.update(); });
-    function updateChartTheme() { if(!radarChart) return; const dark=document.body.classList.contains('dark'); radarChart.options.scales.r.grid.color=dark?'rgba(255,255,255,0.2)':'#ddd'; radarChart.options.scales.r.ticks.color=dark?'white':'#333'; radarChart.update(); }
+    // Theme (dark mode)
+    function initTheme() {
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark');
+            darkModeToggle.checked = true;
+        }
+        updateChartTheme();
+    }
+    darkModeToggle.addEventListener('change', (e) => {
+        document.body.classList.toggle('dark', e.target.checked);
+        localStorage.setItem('darkMode', e.target.checked);
+        updateChartTheme();
+        if (radarChart) radarChart.update();
+        if (genreChart) genreChart.update();
+    });
+    function updateChartTheme() {
+        if (!radarChart) return;
+        const dark = document.body.classList.contains('dark');
+        radarChart.options.scales.r.grid.color = dark ? 'rgba(255,255,255,0.2)' : '#ddd';
+        radarChart.options.scales.r.ticks.color = dark ? 'white' : '#333';
+        radarChart.update();
+    }
     initTheme();
+    initColorTheme();
 
-    // Aspect names
+    // Aspect names persistence
     const ASPECT_NAMES_STORAGE_KEY = 'movieReviewAspectNames';
     let defaultAspectNames = ['Acting','Plot','Cinematography','Soundtrack','Direction'];
-    function loadStoredAspectNames() { const stored=localStorage.getItem(ASPECT_NAMES_STORAGE_KEY); if(stored) try{ const n=JSON.parse(stored); if(Array.isArray(n)&&n.length===ASPECT_COUNT) defaultAspectNames=n; }catch(e){} }
-    function saveAspectNames() { localStorage.setItem(ASPECT_NAMES_STORAGE_KEY, JSON.stringify(aspectNameInputs.map(inp=>inp.value.trim()||"Aspect"))); }
+    function loadStoredAspectNames() {
+        const stored = localStorage.getItem(ASPECT_NAMES_STORAGE_KEY);
+        if (stored) try {
+            const n = JSON.parse(stored);
+            if (Array.isArray(n) && n.length === ASPECT_COUNT) defaultAspectNames = n;
+        } catch(e) {}
+    }
+    function saveAspectNames() {
+        localStorage.setItem(ASPECT_NAMES_STORAGE_KEY, JSON.stringify(aspectNameInputs.map(inp => inp.value.trim() || "Aspect")));
+    }
 
     // Rating scale
     function getMaxScale() { return parseInt(maxScaleSelect.value); }
-    function rebuildScoreDropdowns() { const max=getMaxScale(); scoreSelects.forEach((sel,i)=>{ const cur=parseInt(sel.value)||0; sel.innerHTML=''; for(let s=0;s<=max;s++){ const opt=document.createElement('option'); opt.value=s; opt.textContent=s; if(s===cur) opt.selected=true; sel.appendChild(opt); } }); updateOverallRating(); updateChart(); }
-    function updateOverallRating() { let sum=0,valid=0; scoreSelects.forEach(sel=>{ let sc=parseInt(sel.value); if(!isNaN(sc)){ sum+=sc; valid++; } }); const overall=valid?Math.round(sum/valid):0; overallRatingCircle.innerText=`${overall}/${getMaxScale()}`; return overall; }
-    function updateChart() { let labels=aspectNameInputs.map(inp=>inp.value.trim()||"Aspect"); let scores=scoreSelects.map(sel=>parseInt(sel.value)||0); if(radarChart){ radarChart.data.labels=labels; radarChart.data.datasets[0].data=scores; radarChart.update(); }else initChart(labels,scores); }
-    function initChart(labels,scores) { const ctx=document.getElementById('radarChart').getContext('2d'); if(radarChart) radarChart.destroy(); const dark=document.body.classList.contains('dark'); radarChart=new Chart(ctx,{ type:'radar', data:{ labels, datasets:[{ label:'Rating', data:scores, backgroundColor:'rgba(26,188,156,0.2)', borderColor:'#1abc9c', borderWidth:2, pointBackgroundColor:'#1abc9c', pointRadius:5 }] }, options:{ responsive:true, maintainAspectRatio:true, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw}`}} }, scales:{ r:{ beginAtZero:true, max:getMaxScale(), ticks:{ stepSize:1, color:dark?'white':'#333', backdropColor:'transparent' }, grid:{ color:dark?'rgba(255,255,255,0.2)':'#ddd' }, pointLabels:{ color:dark?'white':'#333' } } } } }); }
+    function rebuildScoreDropdowns() {
+        const max = getMaxScale();
+        scoreSelects.forEach((sel,i)=>{
+            const cur = parseInt(sel.value) || 0;
+            sel.innerHTML = '';
+            for (let s = 0; s <= max; s++) {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                if (s === cur) opt.selected = true;
+                sel.appendChild(opt);
+            }
+        });
+        updateOverallRating();
+        updateChart();
+    }
+    function updateOverallRating() {
+        let sum = 0, valid = 0;
+        scoreSelects.forEach(sel => {
+            let sc = parseInt(sel.value);
+            if (!isNaN(sc)) { sum += sc; valid++; }
+        });
+        const overall = valid ? Math.round(sum / valid) : 0;
+        overallRatingCircle.innerText = `${overall}/${getMaxScale()}`;
+        return overall;
+    }
+    function updateChart() {
+        let labels = aspectNameInputs.map(inp => inp.value.trim() || "Aspect");
+        let scores = scoreSelects.map(sel => parseInt(sel.value) || 0);
+        if (radarChart) {
+            radarChart.data.labels = labels;
+            radarChart.data.datasets[0].data = scores;
+            radarChart.update();
+        } else initChart(labels, scores);
+    }
+    function initChart(labels, scores) {
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        if (radarChart) radarChart.destroy();
+        const dark = document.body.classList.contains('dark');
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--button-primary').trim();
+        radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Rating',
+                    data: scores,
+                    backgroundColor: `${primaryColor}33`,
+                    borderColor: primaryColor,
+                    borderWidth: 2,
+                    pointBackgroundColor: primaryColor,
+                    pointRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}` } }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: getMaxScale(),
+                        ticks: { stepSize: 1, color: dark ? 'white' : '#333', backdropColor: 'transparent' },
+                        grid: { color: dark ? 'rgba(255,255,255,0.2)' : '#ddd' },
+                        pointLabels: { color: dark ? 'white' : '#333' }
+                    }
+                }
+            }
+        });
+    }
 
     function buildAspectControls() {
-        aspectsContainer.innerHTML=''; aspectNameInputs=[]; scoreSelects=[]; loadStoredAspectNames(); const max=getMaxScale();
-        for(let i=0;i<ASPECT_COUNT;i++){ const div=document.createElement('div'); div.className='aspect-group'; const nameInput=document.createElement('input'); nameInput.type='text'; nameInput.className='aspect-name'; nameInput.value=defaultAspectNames[i]; const select=document.createElement('select'); select.className='score-select'; for(let s=0;s<=max;s++){ const opt=document.createElement('option'); opt.value=s; opt.textContent=s; if(s===0) opt.selected=true; select.appendChild(opt); } nameInput.addEventListener('input',()=>{ saveAspectNames(); updateChart(); }); select.addEventListener('change',()=>{ updateOverallRating(); updateChart(); }); aspectNameInputs.push(nameInput); scoreSelects.push(select); div.appendChild(nameInput); div.appendChild(select); aspectsContainer.appendChild(div); } updateOverallRating(); updateChart();
+        aspectsContainer.innerHTML = '';
+        aspectNameInputs = [];
+        scoreSelects = [];
+        loadStoredAspectNames();
+        const max = getMaxScale();
+        for (let i = 0; i < ASPECT_COUNT; i++) {
+            const div = document.createElement('div'); div.className = 'aspect-group';
+            const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.className = 'aspect-name'; nameInput.value = defaultAspectNames[i];
+            const select = document.createElement('select'); select.className = 'score-select';
+            for (let s = 0; s <= max; s++) {
+                const opt = document.createElement('option'); opt.value = s; opt.textContent = s;
+                if (s === 0) opt.selected = true;
+                select.appendChild(opt);
+            }
+            nameInput.addEventListener('input', () => { saveAspectNames(); updateChart(); });
+            select.addEventListener('change', () => { updateOverallRating(); updateChart(); });
+            aspectNameInputs.push(nameInput);
+            scoreSelects.push(select);
+            div.appendChild(nameInput);
+            div.appendChild(select);
+            aspectsContainer.appendChild(div);
+        }
+        updateOverallRating();
+        updateChart();
     }
-    function resetScoresToZero() { scoreSelects.forEach(sel=>sel.value='0'); updateOverallRating(); updateChart(); }
+    function resetScoresToZero() {
+        scoreSelects.forEach(sel => sel.value = '0');
+        updateOverallRating();
+        updateChart();
+    }
 
-    // TMDB (for search and display)
-    async function searchMovies(q) { if(!q.trim()) return []; try{ const res=await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(q)}&language=en-US&page=1`); const data=await res.json(); return data.results||[]; }catch(e){ console.error(e); return []; } }
-    async function fetchMovieGenres(id){ if(!id) return []; try{ const res=await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${TMDB_API_KEY}&language=en-US`); const data=await res.json(); return data.genres?data.genres.map(g=>g.name):[]; }catch(e){ console.error(e); return []; } }
-    async function fetchMovieDirector(id){ if(!id) return ''; try{ const res=await fetch(`https://api.themoviedb.org/3/movie/${id}/credits?api_key=${TMDB_API_KEY}`); const data=await res.json(); const director = data.crew?.find(member => member.job === 'Director'); return director ? director.name : ''; }catch(e){ console.error(e); return ''; } }
-    function getPosterUrl(p){ return p?TMDB_IMAGE_BASE+p:null; }
-    function updatePosterAndLink(m){ currentMovie.id=m.id; currentMovie.title=m.title; currentMovie.posterPath=m.poster_path; currentMovie.fullPosterUrl=getPosterUrl(m.poster_path)||''; const url=currentMovie.fullPosterUrl||`https://placehold.co/200x300?text=${encodeURIComponent(m.title)}`; moviePoster.src=url; moviePoster.onerror=()=>moviePoster.src=`https://placehold.co/200x300?text=${encodeURIComponent(m.title)}`; posterLink.href=`https://www.themoviedb.org/movie/${m.id}`; tmdbLink.href=`https://www.themoviedb.org/movie/${m.id}`; tmdbLink.style.display='inline-flex'; manualPosterOverride = null; manualPosterUrl.value = ''; }
-    function selectMovie(m){ updatePosterAndLink(m); movieSearch.value=m.title; suggestionsDiv.style.display='none'; reviewTextarea.value=''; charCountSpan.innerText='0'; dateWatchedInput.value=''; resetScoresToZero(); editingReviewId = null; editStatusSpan.innerText = ''; isRewatchCheckbox.checked = false; }
-    searchBtn.addEventListener('click',async()=>{ const q=movieSearch.value.trim(); if(!q) return; const r=await searchMovies(q); if(r.length) selectMovie(r[0]); else alert('No movies found.'); });
-    let searchTimeout; movieSearch.addEventListener('input',async(e)=>{ const q=e.target.value; if(q.length<2){ suggestionsDiv.style.display='none'; return; } clearTimeout(searchTimeout); searchTimeout=setTimeout(async()=>{ const r=await searchMovies(q); if(!r.length){ suggestionsDiv.style.display='none'; return; } suggestionsDiv.innerHTML=''; r.slice(0,8).forEach(m=>{ const item=document.createElement('div'); item.className='suggestion-item'; const poster=m.poster_path?`<img class="suggestion-poster" src="${getPosterUrl(m.poster_path)}">`:'<div style="width:40px;height:60px;background:#ddd;"></div>'; const year=m.release_date?new Date(m.release_date).getFullYear():''; item.innerHTML=`${poster}<div><div class="suggestion-title">${m.title}</div><div class="suggestion-year">${year}</div></div>`; item.addEventListener('click',()=>selectMovie(m)); suggestionsDiv.appendChild(item); }); suggestionsDiv.style.display='block'; },300); });
-    document.addEventListener('click',(e)=>{ if(!movieSearch.contains(e.target)&&!suggestionsDiv.contains(e.target)) suggestionsDiv.style.display='none'; });
+    // TMDB helpers
+    async function searchMovies(q) {
+        if (!q.trim()) return [];
+        try {
+            const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(q)}&language=en-US&page=1`);
+            const data = await res.json();
+            return data.results || [];
+        } catch(e) { console.error(e); return []; }
+    }
+    async function fetchMovieGenres(id) {
+        if (!id) return [];
+        try {
+            const res = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${TMDB_API_KEY}&language=en-US`);
+            const data = await res.json();
+            return data.genres ? data.genres.map(g => g.name) : [];
+        } catch(e) { console.error(e); return []; }
+    }
+    async function fetchMovieDirector(id) {
+        if (!id) return '';
+        try {
+            const res = await fetch(`https://api.themoviedb.org/3/movie/${id}/credits?api_key=${TMDB_API_KEY}`);
+            const data = await res.json();
+            const director = data.crew?.find(member => member.job === 'Director');
+            return director ? director.name : '';
+        } catch(e) { console.error(e); return ''; }
+    }
+    async function fetchMovieCast(id) {
+        if (!id) return [];
+        try {
+            const res = await fetch(`https://api.themoviedb.org/3/movie/${id}/credits?api_key=${TMDB_API_KEY}`);
+            const data = await res.json();
+            return data.cast ? data.cast.slice(0,5).map(actor => actor.name) : [];
+        } catch(e) { console.error(e); return []; }
+    }
+    function getPosterUrl(p) { return p ? TMDB_IMAGE_BASE + p : null; }
+    function updatePosterAndLink(m) {
+        currentMovie.id = m.id;
+        currentMovie.title = m.title;
+        currentMovie.posterPath = m.poster_path;
+        currentMovie.fullPosterUrl = getPosterUrl(m.poster_path) || '';
+        const url = currentMovie.fullPosterUrl || `https://placehold.co/200x300?text=${encodeURIComponent(m.title)}`;
+        moviePoster.src = url;
+        moviePoster.onerror = () => moviePoster.src = `https://placehold.co/200x300?text=${encodeURIComponent(m.title)}`;
+        posterLink.href = `https://www.themoviedb.org/movie/${m.id}`;
+        tmdbLink.href = `https://www.themoviedb.org/movie/${m.id}`;
+        tmdbLink.style.display = 'inline-flex';
+        manualPosterOverride = null;
+        manualPosterUrl.value = '';
+    }
+    function selectMovie(m) {
+        updatePosterAndLink(m);
+        movieSearch.value = m.title;
+        suggestionsDiv.style.display = 'none';
+        reviewTextarea.value = '';
+        charCountSpan.innerText = '0';
+        dateWatchedInput.value = '';
+        resetScoresToZero();
+        editingReviewId = null;
+        editStatusSpan.innerText = '';
+        isRewatchCheckbox.checked = false;
+    }
+    searchBtn.addEventListener('click', async () => {
+        const q = movieSearch.value.trim();
+        if (!q) return;
+        const r = await searchMovies(q);
+        if (r.length) selectMovie(r[0]);
+        else alert('No movies found.');
+    });
+    let searchTimeout;
+    movieSearch.addEventListener('input', async (e) => {
+        const q = e.target.value;
+        if (q.length < 2) { suggestionsDiv.style.display = 'none'; return; }
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(async () => {
+            const r = await searchMovies(q);
+            if (!r.length) { suggestionsDiv.style.display = 'none'; return; }
+            suggestionsDiv.innerHTML = '';
+            r.slice(0,8).forEach(m => {
+                const item = document.createElement('div'); item.className = 'suggestion-item';
+                const poster = m.poster_path ? `<img class="suggestion-poster" src="${getPosterUrl(m.poster_path)}">` : '<div style="width:40px;height:60px;background:#ddd;"></div>';
+                const year = m.release_date ? new Date(m.release_date).getFullYear() : '';
+                item.innerHTML = `${poster}<div><div class="suggestion-title">${m.title}</div><div class="suggestion-year">${year}</div></div>`;
+                item.addEventListener('click', () => selectMovie(m));
+                suggestionsDiv.appendChild(item);
+            });
+            suggestionsDiv.style.display = 'block';
+        }, 300);
+    });
+    document.addEventListener('click', (e) => {
+        if (!movieSearch.contains(e.target) && !suggestionsDiv.contains(e.target)) suggestionsDiv.style.display = 'none';
+    });
 
     // Manual poster override
     updateManualPosterBtn.addEventListener('click', () => {
@@ -818,7 +1071,7 @@
         }
     });
 
-    // Server‑side export (unchanged)
+    // Export with primaryColor
     async function exportCompositeImage() {
         const title = currentMovie.title || "Untitled Movie";
         const overall = updateOverallRating();
@@ -830,6 +1083,7 @@
         const tmdbId = currentMovie.id;
         const manualPoster = manualPosterOverride || null;
         const isDarkMode = document.body.classList.contains('dark');
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--button-primary').trim();
 
         try {
             const response = await fetch(EXPORT_SERVER_URL, {
@@ -845,10 +1099,10 @@
                     reviewText,
                     dateWatched,
                     manualPosterUrl: manualPoster,
-                    isDarkMode
+                    isDarkMode,
+                    primaryColor
                 })
             });
-
             if (response.ok) {
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
@@ -869,7 +1123,7 @@
     }
     exportBtn.addEventListener('click', exportCompositeImage);
 
-    // Storage with edit support (updated to include director, rewatch)
+    // Storage with edit support (include cast)
     async function getCurrentReviewObject() {
         const title = currentMovie.title.trim();
         if (!title) { alert("Please search for a movie first."); return null; }
@@ -883,6 +1137,7 @@
         const dateWatched = dateWatchedInput.value;
         let genres = currentMovie.genres;
         let director = currentMovie.director;
+        let cast = currentMovie.cast;
         if (!genres.length && currentMovie.id) {
             genres = await fetchMovieGenres(currentMovie.id);
             currentMovie.genres = genres;
@@ -890,6 +1145,10 @@
         if (!director && currentMovie.id) {
             director = await fetchMovieDirector(currentMovie.id);
             currentMovie.director = director;
+        }
+        if (!cast.length && currentMovie.id) {
+            cast = await fetchMovieCast(currentMovie.id);
+            currentMovie.cast = cast;
         }
         const isRewatch = isRewatchCheckbox.checked;
         return {
@@ -899,6 +1158,7 @@
             tmdbId: currentMovie.id,
             genres,
             director,
+            cast,
             aspects,
             overallScore: overall,
             maxScale,
@@ -962,7 +1222,11 @@
         return r;
     }
 
-    function filterReviews(r) { if (!currentSearchFilter) return r; const f = currentSearchFilter.toLowerCase(); return r.filter(rr => rr.title.toLowerCase().includes(f)); }
+    function filterReviews(r) {
+        if (!currentSearchFilter) return r;
+        const f = currentSearchFilter.toLowerCase();
+        return r.filter(rr => rr.title.toLowerCase().includes(f));
+    }
 
     function renderReviewsTable(reviews) {
         const filtered = filterReviews(reviews);
@@ -1002,7 +1266,7 @@
         let bodyHtml = '';
         paginated.forEach(rev => {
             const rp = rev.reviewText ? rev.reviewText.substring(0, 50) + (rev.reviewText.length > 50 ? '…' : '') : '';
-            bodyHtml += ` <tr>
+            bodyHtml += `   <tr>
                 <td>${rev.title}</td>
                 <td>${rev.overallScore}/${rev.maxScale}</td>
                 ${rev.aspects.map(a => `<td>${a.score}</td>`).join('')}
@@ -1052,17 +1316,7 @@
         }
     }
 
-    // Helper to generate a unique hue from a string
-    function stringToHue(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
-            hash |= 0;
-        }
-        return Math.abs(hash % 360);
-    }
-
-    // Genre chart (bar/pie)
+    // Genre chart (bar)
     function renderGenreChart(reviews) {
         const genreMap = new Map();
         let globalMaxScale = 0;
@@ -1080,63 +1334,50 @@
         }
         const ctx = document.getElementById('genreChart').getContext('2d');
         if (genreChart) genreChart.destroy();
-
         if (genreMap.size === 0) {
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
             ctx.fillStyle = '#aaa';
             ctx.font = '14px "Segoe UI"';
-            ctx.textAlign = 'center';
             ctx.fillText('No genre data yet. Save some reviews!', ctx.canvas.width/2, ctx.canvas.height/2);
             return;
         }
-
-        if (currentTrendsChartType === 'genre') {
-            // The user selected the genre chart – but we are called only for genre display; we need to respect the sub‑type (bar/pie)
-            // For simplicity, we keep the same bar/pie toggle from the old UI? The user removed that toggle. We'll default to bar for now.
-            const genres = Array.from(genreMap.keys());
-            const avgRatings = genres.map(g => (genreMap.get(g).total / genreMap.get(g).count).toFixed(1));
-            const yMax = Math.max(globalMaxScale, 5);
-            genreChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: genres,
-                    datasets: [{ label: 'Average Rating', data: avgRatings, backgroundColor: '#1abc9c' }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw}` } } },
-                    scales: {
-                        y: { beginAtZero: true, max: yMax, title: { display: true, text: 'Average Rating' } },
-                        x: { title: { display: true, text: 'Genre' } }
-                    }
+        const genres = Array.from(genreMap.keys());
+        const avgRatings = genres.map(g => (genreMap.get(g).total / genreMap.get(g).count).toFixed(1));
+        const yMax = Math.max(globalMaxScale, 5);
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--button-primary').trim();
+        genreChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: genres,
+                datasets: [{ label: 'Average Rating', data: avgRatings, backgroundColor: primaryColor }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw}` } } },
+                scales: {
+                    y: { beginAtZero: true, max: yMax, title: { display: true, text: 'Average Rating' } },
+                    x: { title: { display: true, text: 'Genre' } }
                 }
-            });
-        } else {
-            // Not genre chart – so we won't call this function.
-        }
+            }
+        });
     }
 
-    // Rating distribution histogram
+    // Rating distribution
     function renderRatingDistribution(reviews) {
         const scores = reviews.map(r => r.overallScore);
-        const maxScore = Math.max(...scores, 0);
-        const minScore = Math.min(...scores, 0);
-        // Create bins from 0 to maxScale (use the highest maxScale among reviews)
         let globalMaxScale = Math.max(...reviews.map(r => r.maxScale), 1);
-        // Create array of bins (0..globalMaxScale)
         const bins = Array(globalMaxScale + 1).fill(0);
-        for (let s of scores) {
-            bins[s]++;
-        }
+        for (let s of scores) bins[s]++;
         const labels = bins.map((_, i) => i);
         const ctx = document.getElementById('genreChart').getContext('2d');
         if (genreChart) genreChart.destroy();
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--button-primary').trim();
         genreChart = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{ label: 'Number of Reviews', data: bins, backgroundColor: '#1abc9c' }]
+                datasets: [{ label: 'Number of Reviews', data: bins, backgroundColor: primaryColor }]
             },
             options: {
                 responsive: true,
@@ -1154,7 +1395,7 @@
     function renderHeatmap(reviews) {
         const directors = new Set();
         const genres = new Set();
-        const map = new Map(); // key: director|genre -> { total, count }
+        const map = new Map();
         for (const rev of reviews) {
             if (rev.director && rev.genres && rev.genres.length) {
                 directors.add(rev.director);
@@ -1170,13 +1411,12 @@
         }
         const directorList = Array.from(directors).sort();
         const genreList = Array.from(genres).sort();
+        const container = document.getElementById('heatmapTableContainer');
         if (directorList.length === 0 || genreList.length === 0) {
-            const container = document.getElementById('heatmapTableContainer');
             container.innerHTML = '<div style="text-align:center; padding:20px;">Not enough data (need reviews with director and genre info).</div>';
             container.style.display = 'block';
             return;
         }
-        // Build table
         let html = '<table class="genre-table"><thead><tr><th>Director \\ Genre</th>';
         for (let g of genreList) html += `<th>${g}</th>`;
         html += '</tr></thead><tbody>';
@@ -1191,6 +1431,100 @@
             html += '</tr>';
         }
         html += '</tbody></table>';
+        container.innerHTML = html;
+        container.style.display = 'block';
+    }
+
+    // Director stats
+    function renderDirectorStats(reviews) {
+        const directorMap = new Map(); // director -> { totalScore, count, aspects: { aspectName: totalScore, count } }
+        for (const rev of reviews) {
+            if (!rev.director) continue;
+            const dir = rev.director;
+            if (!directorMap.has(dir)) {
+                directorMap.set(dir, { totalScore: 0, count: 0, aspects: new Map() });
+            }
+            const entry = directorMap.get(dir);
+            entry.totalScore += rev.overallScore;
+            entry.count++;
+            for (const asp of rev.aspects) {
+                if (!entry.aspects.has(asp.name)) entry.aspects.set(asp.name, { total: 0, count: 0 });
+                const aspEntry = entry.aspects.get(asp.name);
+                aspEntry.total += asp.score;
+                aspEntry.count++;
+            }
+        }
+        const directors = Array.from(directorMap.keys()).sort();
+        if (directors.length === 0) {
+            const container = document.getElementById('heatmapTableContainer');
+            container.innerHTML = '<div style="text-align:center; padding:20px;">No director data yet. Save some reviews with director info.</div>';
+            container.style.display = 'block';
+            return;
+        }
+        let html = '<table class="genre-table"><thead><tr><th>Director</th><th>Avg Overall</th><th># Films</th><th>Best Aspect</th></tr></thead><tbody>';
+        for (const dir of directors) {
+            const entry = directorMap.get(dir);
+            const avgOverall = (entry.totalScore / entry.count).toFixed(1);
+            let bestAspect = '';
+            let bestScore = -1;
+            for (let [name, aspEntry] of entry.aspects) {
+                const avg = aspEntry.total / aspEntry.count;
+                if (avg > bestScore) {
+                    bestScore = avg;
+                    bestAspect = name;
+                }
+            }
+            html += `<tr><td><strong>${dir}</strong></td><td>${avgOverall}</td><td>${entry.count}</td><td>${bestAspect} (${bestScore.toFixed(1)})</td></tr>`;
+        }
+        html += '</tbody></table>';
+        const container = document.getElementById('heatmapTableContainer');
+        container.innerHTML = html;
+        container.style.display = 'block';
+    }
+
+    // Actor stats
+    function renderActorStats(reviews) {
+        const actorMap = new Map(); // actor -> { totalScore, count, aspects: { aspectName: totalScore, count } }
+        for (const rev of reviews) {
+            if (!rev.cast || rev.cast.length === 0) continue;
+            for (const actor of rev.cast) {
+                if (!actorMap.has(actor)) {
+                    actorMap.set(actor, { totalScore: 0, count: 0, aspects: new Map() });
+                }
+                const entry = actorMap.get(actor);
+                entry.totalScore += rev.overallScore;
+                entry.count++;
+                for (const asp of rev.aspects) {
+                    if (!entry.aspects.has(asp.name)) entry.aspects.set(asp.name, { total: 0, count: 0 });
+                    const aspEntry = entry.aspects.get(asp.name);
+                    aspEntry.total += asp.score;
+                    aspEntry.count++;
+                }
+            }
+        }
+        const actors = Array.from(actorMap.keys()).sort();
+        if (actors.length === 0) {
+            const container = document.getElementById('heatmapTableContainer');
+            container.innerHTML = '<div style="text-align:center; padding:20px;">No actor data yet. Save some reviews with cast info.</div>';
+            container.style.display = 'block';
+            return;
+        }
+        let html = '<table class="genre-table"><thead><tr><th>Actor</th><th>Avg Overall</th><th># Films</th><th>Best Aspect</th></tr></thead><tbody>';
+        for (const actor of actors) {
+            const entry = actorMap.get(actor);
+            const avgOverall = (entry.totalScore / entry.count).toFixed(1);
+            let bestAspect = '';
+            let bestScore = -1;
+            for (let [name, aspEntry] of entry.aspects) {
+                const avg = aspEntry.total / aspEntry.count;
+                if (avg > bestScore) {
+                    bestScore = avg;
+                    bestAspect = name;
+                }
+            }
+            html += `<tr><td><strong>${actor}</strong></td><td>${avgOverall}</td><td>${entry.count}</td><td>${bestAspect} (${bestScore.toFixed(1)})</td></tr>`;
+        }
+        html += '</tbody></table>';
         const container = document.getElementById('heatmapTableContainer');
         container.innerHTML = html;
         container.style.display = 'block';
@@ -1198,19 +1532,15 @@
 
     // Rewatch accuracy
     function renderRewatchAccuracy(reviews) {
-        // Group by title (lowercase) and sort by dateReviewed
         const byTitle = new Map();
         for (let rev of reviews) {
             const key = rev.title.toLowerCase();
             if (!byTitle.has(key)) byTitle.set(key, []);
             byTitle.get(key).push(rev);
         }
-        let totalRewatches = 0;
-        let changed = 0;
-        let totalDiff = 0;
+        let totalRewatches = 0, changed = 0, totalDiff = 0;
         for (let entries of byTitle.values()) {
             if (entries.length < 2) continue;
-            // sort by dateReviewed
             entries.sort((a,b) => new Date(a.dateReviewed) - new Date(b.dateReviewed));
             for (let i = 1; i < entries.length; i++) {
                 totalRewatches++;
@@ -1233,24 +1563,22 @@
         container.style.display = 'block';
     }
 
-    // Trends over time (line chart)
+    // Trends over time
     function renderTrendsOverTime(reviews) {
         if (reviews.length === 0) {
             const ctx = document.getElementById('genreChart').getContext('2d');
             if (genreChart) genreChart.destroy();
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
             ctx.fillStyle = '#aaa';
-            ctx.font = '14px "Segoe UI"';
             ctx.fillText('No reviews yet. Save some reviews!', ctx.canvas.width/2, ctx.canvas.height/2);
             return;
         }
-        // Sort by dateReviewed
         const sorted = [...reviews].sort((a,b) => new Date(a.dateReviewed) - new Date(b.dateReviewed));
         const labels = sorted.map(r => new Date(r.dateReviewed).toLocaleDateString());
         const overallScores = sorted.map(r => r.overallScore);
-        // Optional: include individual aspects if desired, but we'll keep simple
         const ctx = document.getElementById('genreChart').getContext('2d');
         if (genreChart) genreChart.destroy();
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--button-primary').trim();
         genreChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -1259,8 +1587,8 @@
                     {
                         label: 'Overall Rating',
                         data: overallScores,
-                        borderColor: '#1abc9c',
-                        backgroundColor: 'rgba(26,188,156,0.1)',
+                        borderColor: primaryColor,
+                        backgroundColor: `${primaryColor}33`,
                         fill: true,
                         tension: 0.3
                     }
@@ -1279,35 +1607,29 @@
         });
     }
 
-    // Viewing diary (heatmap)
+    // Viewing diary heatmap (simplified grid)
     function renderViewingDiary(reviews) {
         const dateCount = new Map();
         for (const rev of reviews) {
             if (rev.dateWatched) {
-                const d = rev.dateWatched.slice(0,10); // YYYY-MM-DD
+                const d = rev.dateWatched.slice(0,10);
                 dateCount.set(d, (dateCount.get(d) || 0) + 1);
             }
         }
-        // Generate last 365 days
         const today = new Date();
         const startDate = new Date(today);
-        startDate.setDate(today.getDate() - 364); // ~1 year
+        startDate.setDate(today.getDate() - 364);
         const days = [];
         for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
             const dateStr = d.toISOString().slice(0,10);
             days.push({ date: dateStr, count: dateCount.get(dateStr) || 0 });
         }
-        // Build a simple grid (weeks)
-        const ctx = document.getElementById('genreChart').getContext('2d');
-        if (genreChart) genreChart.destroy();
-        // Use a heatmap chart? Not directly supported, we'll create a table grid
-        const container = document.getElementById('heatmapTableContainer');
-        container.style.display = 'block';
-        container.innerHTML = '';
         const maxCount = Math.max(...days.map(d => d.count), 1);
-        const intensity = (count) => `rgba(26, 188, 156, ${count / maxCount})`;
+        const intensity = (count) => {
+            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--button-primary').trim();
+            return `rgba(26, 188, 156, ${count / maxCount})`; // we approximate, but keep the green look; it's okay
+        };
         let html = '<div style="overflow-x: auto;"><table style="border-collapse: collapse;">';
-        // Build weeks
         let weekRows = [];
         let currentWeek = [];
         for (let i = 0; i < days.length; i++) {
@@ -1318,7 +1640,7 @@
                 currentWeek = [];
             }
         }
-        // Display month labels
+        // Month labels
         html += '<tr>';
         let lastMonth = '';
         for (let w of weekRows) {
@@ -1346,7 +1668,9 @@
             html += '</tr>';
         }
         html += '</table></div><div style="margin-top: 10px;"><span>Darker green = more films watched that day</span></div>';
+        const container = document.getElementById('heatmapTableContainer');
         container.innerHTML = html;
+        container.style.display = 'block';
     }
 
     function sortGenreTable(column) {
@@ -1378,13 +1702,13 @@
         updateSortDropdownAspects(reviews);
         renderReviewsTable(reviews);
 
-        // Hide all optional containers first
+        // Hide all optional containers
         document.getElementById('heatmapTableContainer').style.display = 'none';
         document.getElementById('accuracyStats').style.display = 'none';
         document.getElementById('genreTableContainer').style.display = 'none';
         document.getElementById('trendsChartContainer').style.display = 'block';
 
-        // Determine which visualization to show
+        // Show the correct visualization
         switch (currentTrendsChartType) {
             case 'genre':
                 document.getElementById('genreTableContainer').style.display = 'block';
@@ -1397,6 +1721,14 @@
             case 'heatmap':
                 document.getElementById('trendsChartContainer').style.display = 'none';
                 renderHeatmap(reviews);
+                break;
+            case 'director':
+                document.getElementById('trendsChartContainer').style.display = 'none';
+                renderDirectorStats(reviews);
+                break;
+            case 'actor':
+                document.getElementById('trendsChartContainer').style.display = 'none';
+                renderActorStats(reviews);
                 break;
             case 'accuracy':
                 document.getElementById('trendsChartContainer').style.display = 'none';
@@ -1415,7 +1747,7 @@
                 sortGenreTable('genre');
         }
 
-        // Always ensure genre table is visible if needed
+        // Ensure genre table headers are interactive
         const genreTableHeaders = document.querySelectorAll('#genreTable th');
         genreTableHeaders.forEach(th => {
             th.style.cursor = 'pointer';
@@ -1423,7 +1755,7 @@
         });
     }
 
-    // Export data (JSON and CSV)
+    // Export data (JSON/CSV)
     function exportJSON() {
         const reviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
         const dataStr = JSON.stringify(reviews, null, 2);
@@ -1438,14 +1770,13 @@
     function exportCSV() {
         const reviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
         if (reviews.length === 0) { alert('No reviews to export.'); return; }
-        // Flatten aspects into columns
         const aspectNames = reviews[0].aspects.map(a => a.name);
-        const headers = ['id', 'title', 'posterUrl', 'tmdbId', 'director', 'genres', 'overallScore', 'maxScale', 'reviewText', 'dateWatched', 'isRewatch', 'dateReviewed', ...aspectNames.map(n => `${n}_score`)];
+        const headers = ['id', 'title', 'posterUrl', 'tmdbId', 'director', 'cast', 'genres', 'overallScore', 'maxScale', 'reviewText', 'dateWatched', 'isRewatch', 'dateReviewed', ...aspectNames.map(n => `${n}_score`)];
         const rows = reviews.map(rev => {
             const aspectScores = rev.aspects.map(a => a.score);
             return [
-                rev.id, rev.title, rev.posterUrl, rev.tmdbId, rev.director || '', (rev.genres || []).join(';'), rev.overallScore, rev.maxScale,
-                rev.reviewText || '', rev.dateWatched || '', rev.isRewatch ? 'Yes' : 'No', rev.dateReviewed, ...aspectScores
+                rev.id, rev.title, rev.posterUrl, rev.tmdbId, rev.director || '', (rev.cast || []).join(';'), (rev.genres || []).join(';'),
+                rev.overallScore, rev.maxScale, rev.reviewText || '', rev.dateWatched || '', rev.isRewatch ? 'Yes' : 'No', rev.dateReviewed, ...aspectScores
             ];
         });
         const csvRows = [headers, ...rows];
@@ -1475,7 +1806,8 @@
             posterPath: null,
             fullPosterUrl: review.posterUrl,
             genres: review.genres || [],
-            director: review.director || ''
+            director: review.director || '',
+            cast: review.cast || []
         };
         if (review.posterUrl) {
             moviePoster.src = review.posterUrl;

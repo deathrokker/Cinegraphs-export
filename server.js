@@ -32,8 +32,8 @@ async function getPosterUrl(tmdbId) {
   return null;
 }
 
-// ==================== HELPER: Generate chart image with dynamic label colors ====================
-async function generateChartImage(aspects, scores, maxScale, isDarkMode) {
+// ==================== HELPER: Generate chart image ====================
+async function generateChartImage(aspects, scores, maxScale, isDarkMode, primaryColor) {
   const pointLabelColor = isDarkMode ? '#fff' : '#333';
   const gridColor = isDarkMode ? 'rgba(255,255,255,0.2)' : '#ddd';
 
@@ -44,10 +44,10 @@ async function generateChartImage(aspects, scores, maxScale, isDarkMode) {
       datasets: [{
         label: 'Rating',
         data: scores,
-        backgroundColor: 'rgba(26, 188, 156, 0.2)',
-        borderColor: '#1abc9c',
+        backgroundColor: `${primaryColor}33`, // 20% opacity
+        borderColor: primaryColor,
         borderWidth: 2,
-        pointBackgroundColor: '#1abc9c',
+        pointBackgroundColor: primaryColor,
         pointRadius: 5
       }]
     },
@@ -70,27 +70,6 @@ async function generateChartImage(aspects, scores, maxScale, isDarkMode) {
     }
   };
   const buffer = await chartJSNodeCanvas.renderToBuffer(configuration);
-  return buffer;
-}
-
-// ==================== HELPER: Generate vignette overlay ====================
-async function generateVignette(width, height, isDarkMode) {
-  // Create an SVG radial gradient that fades from transparent center to semi‑transparent edges
-  const intensity = isDarkMode ? 0.2 : 0.08;
-  const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <radialGradient id="vignette" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
-        <stop offset="0%" stop-color="black" stop-opacity="0"/>
-        <stop offset="80%" stop-color="black" stop-opacity="${intensity}"/>
-        <stop offset="100%" stop-color="black" stop-opacity="${intensity * 1.5}"/>
-      </radialGradient>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#vignette)"/>
-  </svg>`;
-
-  const buffer = await sharp(Buffer.from(svg))
-    .png()
-    .toBuffer();
   return buffer;
 }
 
@@ -140,6 +119,23 @@ function escapeXml(str) {
   });
 }
 
+// ==================== Generate vignette overlay ====================
+async function generateVignette(width, height, isDarkMode) {
+  const intensity = isDarkMode ? 0.2 : 0.12;
+  const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="vignette" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
+        <stop offset="0%" stop-color="black" stop-opacity="0"/>
+        <stop offset="80%" stop-color="black" stop-opacity="${intensity}"/>
+        <stop offset="100%" stop-color="black" stop-opacity="${intensity * 1.5}"/>
+      </radialGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#vignette)"/>
+  </svg>`;
+  const buffer = await sharp(Buffer.from(svg)).png().toBuffer();
+  return buffer;
+}
+
 // ==================== MAIN EXPORT ENDPOINT ====================
 app.post('/export', async (req, res) => {
   try {
@@ -153,16 +149,17 @@ app.post('/export', async (req, res) => {
       reviewText,
       dateWatched,
       manualPosterUrl,
-      isDarkMode = false
+      isDarkMode = false,
+      primaryColor = '#1abc9c'
     } = req.body;
 
-    // Background color (light or dark)
+    // Background color
     const bgColor = isDarkMode ? { r: 22, g: 33, b: 62 } : { r: 255, g: 255, b: 255 };
     const textColor = isDarkMode ? '#eee' : '#333';
     const subTextColor = isDarkMode ? '#ccc' : '#666';
     const reviewColor = isDarkMode ? '#ddd' : '#444';
 
-    // 1. Get poster URL
+    // 1. Poster URL
     let posterUrl = manualPosterUrl;
     if (!posterUrl && tmdbId) {
       posterUrl = await getPosterUrl(tmdbId);
@@ -172,10 +169,10 @@ app.post('/export', async (req, res) => {
     }
     console.log('Poster URL:', posterUrl);
 
-    // 2. Generate chart image (pass isDarkMode for label colors)
+    // 2. Chart
     let chartBuffer;
     try {
-      chartBuffer = await generateChartImage(aspects, scores, maxScale, isDarkMode);
+      chartBuffer = await generateChartImage(aspects, scores, maxScale, isDarkMode, primaryColor);
       console.log('Chart buffer size:', chartBuffer.length, 'bytes');
     } catch (err) {
       console.error('Chart generation failed, using placeholder:', err);
@@ -189,7 +186,7 @@ app.post('/export', async (req, res) => {
       }).png().toBuffer();
     }
 
-    // 3. Fetch poster image as buffer
+    // 3. Fetch poster
     const posterResponse = await fetch(posterUrl);
     if (!posterResponse.ok) throw new Error(`Failed to fetch poster: ${posterResponse.status}`);
     const posterBuffer = await posterResponse.buffer();
@@ -205,21 +202,43 @@ app.post('/export', async (req, res) => {
       .toBuffer();
     console.log('Poster resized size:', posterResized.length, 'bytes');
 
-    // 5. Build SVG overlay with dynamic colors
+    // 5. Build SVG overlay with dynamic colors (including primaryColor)
     const compWidth = 1000;
     const compHeight = 1000;
+
+    // Determine review font size based on length
+    let reviewFontSize = 14;
+    let reviewLineLength = 60;
+    if (reviewText) {
+      if (reviewText.length < 100) {
+        reviewFontSize = 18;
+        reviewLineLength = 70;
+      } else if (reviewText.length < 200) {
+        reviewFontSize = 16;
+        reviewLineLength = 65;
+      } else if (reviewText.length < 300) {
+        reviewFontSize = 14;
+        reviewLineLength = 60;
+      } else {
+        reviewFontSize = 12;
+        reviewLineLength = 55;
+      }
+    }
+
+    const wrappedReview = reviewText ? wrapText(reviewText, reviewLineLength) : [];
+
     let svg = `<svg width="${compWidth}" height="${compHeight}" xmlns="http://www.w3.org/2000/svg">`;
     svg += `<style>
       .title { font-family: 'Segoe UI', sans-serif; font-size: 40px; font-weight: bold; fill: ${textColor}; text-anchor: middle; }
-      .overall { font-family: 'Segoe UI', sans-serif; font-size: 20px; fill: #1abc9c; text-anchor: middle; }
+      .overall { font-family: 'Segoe UI', sans-serif; font-size: 20px; fill: ${primaryColor}; text-anchor: middle; }
       .date { font-family: 'Segoe UI', sans-serif; font-size: 16px; fill: ${subTextColor}; text-anchor: middle; }
-      .review { font-family: 'Segoe UI', sans-serif; font-size: 14px; fill: ${reviewColor}; text-anchor: start; }
-      .logo-square { stroke: #1abc9c; stroke-width: 2; fill: none; }
-      .logo-text { font-family: 'Segoe UI', sans-serif; font-size: 10px; fill: #1abc9c; text-anchor: middle; }
+      .review { font-family: 'Segoe UI', sans-serif; font-size: ${reviewFontSize}px; fill: ${reviewColor}; text-anchor: start; }
+      .logo-square { stroke: ${primaryColor}; stroke-width: 2; fill: none; }
+      .logo-text { font-family: 'Segoe UI', sans-serif; font-size: 10px; fill: ${primaryColor}; text-anchor: middle; }
       .app-name { font-family: 'Segoe UI', sans-serif; font-size: 20px; font-weight: bold; fill: ${textColor}; text-anchor: start; }
     </style>`;
 
-    // Title (wrapped)
+    // Title
     const titleLines = wrapTitle(title, 40);
     let titleY = 70;
     for (const line of titleLines) {
@@ -234,16 +253,15 @@ app.post('/export', async (req, res) => {
     }
 
     // Review text
-    if (reviewText) {
-      const lines = wrapText(reviewText, 60);
+    if (wrappedReview.length) {
       let y = posterY + posterHeight + 30;
-      for (const line of lines) {
+      for (const line of wrappedReview) {
         svg += `<text x="90" y="${y}" class="review">${escapeXml(line)}</text>`;
-        y += 20;
+        y += reviewFontSize + 6;
       }
     }
 
-    // Logo and app name at bottom
+    // Logo and app name
     const bottomY = compHeight - 60;
     const logoSize = 40;
     const textWidth = 120;
@@ -254,18 +272,14 @@ app.post('/export', async (req, res) => {
       <text x="${startX + logoSize/2}" y="${bottomY - logoSize + 25}" class="logo-text">Logo</text>
       <text x="${startX + logoSize + 10}" y="${bottomY - 10}" class="app-name">Cinegraphs</text>
     `;
-
     svg += `</svg>`;
     const svgBuffer = Buffer.from(svg);
     console.log('SVG buffer size:', svgBuffer.length, 'bytes');
 
-    // 6. Generate vignette
-    const vignetteBuffer = await generateVignette(compWidth, compHeight, isDarkMode);
-    console.log('Vignette buffer size:', vignetteBuffer.length, 'bytes');
-
-    // 7. Composite all layers in order: background, poster, chart, vignette, then text (so vignette doesn't darken text)
+    // 6. Composite
     const chartX = compWidth - 500 - 80;
     const chartY = posterY + (posterHeight - 500) / 2;
+    const vignetteBuffer = await generateVignette(compWidth, compHeight, isDarkMode);
 
     const layers = [
       { input: posterResized, left: posterX, top: posterY },
