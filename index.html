@@ -26,6 +26,7 @@
             --attribution-bg: rgba(0,0,0,0.05);
             --chart-grid: #ddd;
             --chart-dataset: #1abc9c;
+            --tmdb-link: #1abc9c;
         }
         body.dark {
             --bg-body: #1a1a2e;
@@ -43,6 +44,7 @@
             --attribution-bg: rgba(255,255,255,0.05);
             --chart-grid: rgba(255,255,255,0.2);
             --chart-dataset: #1abc9c;
+            --tmdb-link: #1abc9c;
         }
         * {
             box-sizing: border-box;
@@ -488,6 +490,15 @@
             flex-wrap: wrap;
             margin-top: auto;
         }
+        .attribution a {
+            color: var(--tmdb-link);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .attribution a:hover {
+            text-decoration: underline;
+            opacity: 0.8;
+        }
         .tmdb-logo {
             height: 14px;
             vertical-align: middle;
@@ -688,6 +699,7 @@
             </select>
             <div class="export-buttons">
                 <button id="exportJSONBtn">📄 Export JSON</button>
+                <button id="importJSONBtn">📂 Import JSON</button>
                 <button id="exportCSVBtn">📊 Export CSV</button>
             </div>
         </div>
@@ -715,7 +727,7 @@
                 <div class="page-nav"><button id="prevPageBtn" disabled>◀ Prev</button><span id="pageInfo"></span><button id="nextPageBtn">Next ▶</button></div>
             </div>
         </div>
-        <div style="overflow-x: auto;"><table class="reviews-table" id="reviewsTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody>?</table></div>
+        <div style="overflow-x: auto;"><table class="reviews-table" id="reviewsTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody>? </div>
     </div>
 
     <div class="attribution">
@@ -778,6 +790,8 @@
         document.documentElement.style.setProperty('--button-primary', theme.primary);
         document.documentElement.style.setProperty('--button-hover', theme.hover);
         document.documentElement.style.setProperty('--chart-dataset', theme.dataset);
+        document.documentElement.style.setProperty('--tmdb-link', theme.primary);
+        // Update active tab background (the active tab already uses --button-primary)
         // Update charts if they exist
         if (radarChart) {
             radarChart.data.datasets[0].borderColor = theme.primary;
@@ -789,7 +803,7 @@
             genreChart.data.datasets[0].backgroundColor = theme.primary;
             genreChart.update();
         }
-        // Also update the slider toggle background
+        // Update slider toggle background if checked
         const slider = document.querySelector('.slider');
         if (slider && darkModeToggle.checked) {
             slider.style.backgroundColor = theme.primary;
@@ -1123,6 +1137,86 @@
     }
     exportBtn.addEventListener('click', exportCompositeImage);
 
+    // Import JSON function
+    function importJSON() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedReviews = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedReviews)) throw new Error('Not an array');
+                    let currentReviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
+                    // Merge: replace reviews with same id, add new ones
+                    const merged = [...currentReviews];
+                    for (const imp of importedReviews) {
+                        const index = merged.findIndex(r => r.id === imp.id);
+                        if (index !== -1) {
+                            merged[index] = imp;
+                        } else {
+                            merged.push(imp);
+                        }
+                    }
+                    localStorage.setItem('movieReviews', JSON.stringify(merged));
+                    alert(`Imported ${importedReviews.length} reviews. Total now: ${merged.length}`);
+                    renderTrends();
+                } catch (err) {
+                    alert('Invalid JSON file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    // Export CSV (existing)
+    function exportJSON() {
+        const reviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
+        const dataStr = JSON.stringify(reviews, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'cinegraphs_reviews.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    function exportCSV() {
+        const reviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
+        if (reviews.length === 0) { alert('No reviews to export.'); return; }
+        const aspectNames = reviews[0].aspects.map(a => a.name);
+        const headers = ['id', 'title', 'posterUrl', 'tmdbId', 'director', 'cast', 'genres', 'overallScore', 'maxScale', 'reviewText', 'dateWatched', 'isRewatch', 'dateReviewed', ...aspectNames.map(n => `${n}_score`)];
+        const rows = reviews.map(rev => {
+            const aspectScores = rev.aspects.map(a => a.score);
+            return [
+                rev.id, rev.title, rev.posterUrl, rev.tmdbId, rev.director || '', (rev.cast || []).join(';'), (rev.genres || []).join(';'),
+                rev.overallScore, rev.maxScale, rev.reviewText || '', rev.dateWatched || '', rev.isRewatch ? 'Yes' : 'No', rev.dateReviewed, ...aspectScores
+            ];
+        });
+        const csvRows = [headers, ...rows];
+        const csvContent = csvRows.map(row => row.map(cell => {
+            if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"'))) {
+                return `"${cell.replace(/"/g, '""')}"`;
+            }
+            return cell;
+        }).join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'cinegraphs_reviews.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('exportJSONBtn').addEventListener('click', exportJSON);
+    document.getElementById('importJSONBtn').addEventListener('click', importJSON);
+    document.getElementById('exportCSVBtn').addEventListener('click', exportCSV);
+
     // Storage with edit support (include cast)
     async function getCurrentReviewObject() {
         const title = currentMovie.title.trim();
@@ -1266,16 +1360,16 @@
         let bodyHtml = '';
         paginated.forEach(rev => {
             const rp = rev.reviewText ? rev.reviewText.substring(0, 50) + (rev.reviewText.length > 50 ? '…' : '') : '';
-            bodyHtml += `   <tr>
-                <td>${rev.title}</td>
-                <td>${rev.overallScore}/${rev.maxScale}</td>
+            bodyHtml += `   <td>
+                 <td>${rev.title}</td>
+                 <td>${rev.overallScore}/${rev.maxScale}</td>
                 ${rev.aspects.map(a => `<td>${a.score}</td>`).join('')}
-                <td>${new Date(rev.dateReviewed).toLocaleDateString()}</td>
-                <td>${rev.dateWatched ? new Date(rev.dateWatched).toLocaleDateString() : '-'}</td>
-                <td>${rev.isRewatch ? '<span class="rewatch-badge">🔄 Rewatch</span>' : ''}</td>
+                 <td>${new Date(rev.dateReviewed).toLocaleDateString()}</td>
+                 <td>${rev.dateWatched ? new Date(rev.dateWatched).toLocaleDateString() : '-'}</td>
+                 <td>${rev.isRewatch ? '<span class="rewatch-badge">🔄 Rewatch</span>' : ''}</td>
                 <td title="${rev.reviewText?.replace(/"/g, '&quot;') || ''}">${rp}</td>
-                <td><button class="edit-btn" data-id="${rev.id}">Edit</button> <button class="delete-btn" data-id="${rev.id}">Delete</button></td>
-            </tr>`;
+                 <td><button class="edit-btn" data-id="${rev.id}">Edit</button> <button class="delete-btn" data-id="${rev.id}">Delete</button></td>
+             </tr>`;
         });
         tb.innerHTML = bodyHtml;
 
@@ -1754,49 +1848,6 @@
             th.addEventListener('click', () => { sortGenreTable(th.getAttribute('data-sort')); });
         });
     }
-
-    // Export data (JSON/CSV)
-    function exportJSON() {
-        const reviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
-        const dataStr = JSON.stringify(reviews, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'cinegraphs_reviews.json';
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-    function exportCSV() {
-        const reviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
-        if (reviews.length === 0) { alert('No reviews to export.'); return; }
-        const aspectNames = reviews[0].aspects.map(a => a.name);
-        const headers = ['id', 'title', 'posterUrl', 'tmdbId', 'director', 'cast', 'genres', 'overallScore', 'maxScale', 'reviewText', 'dateWatched', 'isRewatch', 'dateReviewed', ...aspectNames.map(n => `${n}_score`)];
-        const rows = reviews.map(rev => {
-            const aspectScores = rev.aspects.map(a => a.score);
-            return [
-                rev.id, rev.title, rev.posterUrl, rev.tmdbId, rev.director || '', (rev.cast || []).join(';'), (rev.genres || []).join(';'),
-                rev.overallScore, rev.maxScale, rev.reviewText || '', rev.dateWatched || '', rev.isRewatch ? 'Yes' : 'No', rev.dateReviewed, ...aspectScores
-            ];
-        });
-        const csvRows = [headers, ...rows];
-        const csvContent = csvRows.map(row => row.map(cell => {
-            if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"'))) {
-                return `"${cell.replace(/"/g, '""')}"`;
-            }
-            return cell;
-        }).join(',')).join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'cinegraphs_reviews.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    document.getElementById('exportJSONBtn').addEventListener('click', exportJSON);
-    document.getElementById('exportCSVBtn').addEventListener('click', exportCSV);
 
     function loadReviewIntoForm(review) {
         movieSearch.value = review.title;
