@@ -9,55 +9,58 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        /* Theme variables (default green) */
+        /* ==================== LIGHT MODE (default) ==================== */
         :root {
             --bg-body: #f0f2f5;
-            --bg-app: white;
-            --text-primary: #333;
-            --text-secondary: #666;
-            --border-color: #ddd;
-            --input-bg: white;
-            --card-bg: #f8f9fa;
+            --bg-app: #ffffff;
+            --text-primary: #1e1e2f;
+            --text-secondary: #4a5568;
+            --border-color: #e2e8f0;
+            --input-bg: #ffffff;
+            --card-bg: #f8fafc;
             --button-primary: #1abc9c;
             --button-hover: #16a085;
-            --tab-bg: #2c3e50;
-            --tab-inactive: #34495e;
-            --table-header: #2c3e50;
-            --attribution-bg: rgba(0,0,0,0.05);
-            --chart-grid: #ddd;
-            --chart-dataset: #1abc9c;
+            --tab-bg: #2d3748;
+            --tab-inactive: #4a5568;
+            --table-header: #2d3748;
+            --attribution-bg: #f1f5f9;
+            --chart-grid: #e2e8f0;
             --tmdb-link: #1abc9c;
         }
+
+        /* ==================== DARK MODE (pure black) ==================== */
         body.dark {
-            --bg-body: #1a1a2e;
-            --bg-app: #16213e;
-            --text-primary: #eee;
-            --text-secondary: #aaa;
-            --border-color: #2a2a3a;
-            --input-bg: #0f0f1a;
-            --card-bg: #0f0f1a;
-            --button-primary: #16a085;
-            --button-hover: #1abc9c;
-            --tab-bg: #0a0c15;
-            --tab-inactive: #1e2a3a;
-            --table-header: #0f172a;
-            --attribution-bg: rgba(255,255,255,0.05);
-            --chart-grid: rgba(255,255,255,0.2);
-            --chart-dataset: #1abc9c;
+            --bg-body: #000000;
+            --bg-app: #000000;
+            --text-primary: #f0f0f0;
+            --text-secondary: #cbd5e1;
+            --border-color: #2a2a2a;
+            --input-bg: #1a1a1a;
+            --card-bg: #0f0f0f;
+            --button-primary: #1abc9c;
+            --button-hover: #16a085;
+            --tab-bg: #0a0a0a;
+            --tab-inactive: #1a1a1a;
+            --table-header: #1a1a1a;
+            --attribution-bg: #0f0f0f;
+            --chart-grid: #2a2a2a;
             --tmdb-link: #1abc9c;
         }
+
         * {
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
+
         body {
             background: var(--bg-body);
             margin: 0;
             padding: 12px;
-            transition: background 0.3s;
+            transition: background 0.3s, color 0.3s;
             color: var(--text-primary);
         }
+
         .app-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -69,6 +72,7 @@
             flex-direction: column;
             min-height: calc(100vh - 24px);
         }
+
         .header {
             background: var(--tab-bg);
             padding: 12px 16px;
@@ -78,6 +82,7 @@
             gap: 12px;
             flex-wrap: wrap;
         }
+
         .logo-placeholder {
             width: 60px;
             height: 60px;
@@ -91,6 +96,7 @@
             font-size: 10px;
             text-align: center;
         }
+
         .header h1 {
             margin: 0;
             color: white;
@@ -99,11 +105,13 @@
             flex-grow: 1;
             text-align: center;
         }
+
         .header-controls {
             display: flex;
             align-items: center;
             gap: 12px;
         }
+
         .theme-selector {
             background: var(--tab-inactive);
             border: none;
@@ -113,6 +121,7 @@
             font-size: 0.8rem;
             cursor: pointer;
         }
+
         .tabs {
             display: flex;
             background: var(--tab-bg);
@@ -121,6 +130,7 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
+
         .tab-btn {
             background: var(--tab-inactive);
             border: none;
@@ -132,31 +142,38 @@
             border-radius: 8px 8px 0 0;
             white-space: nowrap;
         }
+
         .tab-btn.active {
             background: var(--button-primary);
         }
+
         .tab-content {
             display: none;
             padding: 16px;
             animation: fadeIn 0.3s;
             flex: 1;
         }
+
         .tab-content.active {
             display: block;
         }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
         .review-grid {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
         }
+
         .left-panel {
             flex: 1;
             min-width: 260px;
         }
+
         .right-panel {
             flex: 1;
             min-width: 280px;
@@ -164,6 +181,7 @@
             flex-direction: column;
             gap: 20px;
         }
+
         .overall-rating-circle {
             width: 80px;
             height: 80px;
@@ -179,20 +197,24 @@
             margin: 0 auto;
             border: 2px solid var(--button-primary);
         }
+
         .search-area {
             background: var(--card-bg);
             border-radius: 12px;
             padding: 12px;
             margin-bottom: 16px;
         }
+
         .search-container {
             position: relative;
         }
+
         .search-row {
             display: flex;
             gap: 8px;
             margin-bottom: 8px;
         }
+
         .search-row input {
             flex: 1;
             padding: 10px;
@@ -202,6 +224,7 @@
             background: var(--input-bg);
             color: var(--text-primary);
         }
+
         .search-row button {
             padding: 10px 16px;
             background: var(--button-primary);
@@ -212,6 +235,11 @@
             transition: 0.2s;
             font-size: 0.9rem;
         }
+
+        .search-row button:hover {
+            background: var(--button-hover);
+        }
+
         .suggestions {
             position: absolute;
             top: 100%;
@@ -226,6 +254,7 @@
             display: none;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
+
         .suggestion-item {
             padding: 8px;
             cursor: pointer;
@@ -234,29 +263,35 @@
             gap: 8px;
             align-items: center;
         }
+
         .suggestion-poster {
             width: 35px;
             height: 52px;
             object-fit: cover;
             border-radius: 4px;
         }
+
         .suggestion-title {
             font-weight: bold;
             font-size: 0.9rem;
         }
+
         .suggestion-year {
             font-size: 0.75rem;
             color: var(--text-secondary);
         }
+
         .poster-link {
             display: inline-block;
             text-decoration: none;
         }
+
         .poster-area {
             text-align: center;
             margin: 12px 0;
             min-height: 180px;
         }
+
         .poster-area img {
             max-width: 100%;
             max-height: 220px;
@@ -265,12 +300,14 @@
             object-fit: contain;
             background: #eee;
         }
+
         .manual-poster-row {
             display: flex;
             gap: 6px;
             margin-top: 8px;
             align-items: center;
         }
+
         .manual-poster-row input {
             flex: 1;
             padding: 6px;
@@ -280,6 +317,7 @@
             background: var(--input-bg);
             color: var(--text-primary);
         }
+
         .manual-poster-row button {
             padding: 6px 10px;
             background: #3498db;
@@ -289,16 +327,19 @@
             cursor: pointer;
             font-size: 0.75rem;
         }
+
         .date-watched {
             margin: 8px 0;
             display: flex;
             align-items: center;
             gap: 8px;
         }
+
         .date-watched label {
             font-weight: bold;
             font-size: 0.85rem;
         }
+
         .date-watched input {
             padding: 6px;
             border-radius: 6px;
@@ -307,6 +348,7 @@
             color: var(--text-primary);
             font-size: 0.85rem;
         }
+
         .global-settings {
             margin: 16px 0;
             padding-top: 8px;
@@ -316,24 +358,34 @@
             gap: 15px;
             flex-wrap: wrap;
         }
+
         .global-settings label {
             font-weight: bold;
             margin-right: 5px;
             font-size: 0.9rem;
         }
+
         .global-settings select, .global-settings input[type="checkbox"] {
             margin-right: 5px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 4px;
         }
+
         .rewatch-checkbox {
             display: flex;
             align-items: center;
             gap: 5px;
         }
+
         .aspect-group {
             margin-bottom: 16px;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 8px;
         }
+
         .aspect-name {
             width: 100%;
             padding: 6px;
@@ -343,6 +395,7 @@
             background: var(--input-bg);
             color: var(--text-primary);
         }
+
         .score-select {
             width: 100%;
             padding: 6px;
@@ -352,9 +405,11 @@
             background: var(--input-bg);
             color: var(--text-primary);
         }
+
         .review-textarea {
             margin-top: 16px;
         }
+
         .review-textarea textarea {
             width: 100%;
             padding: 8px;
@@ -366,12 +421,14 @@
             font-family: inherit;
             font-size: 0.85rem;
         }
+
         .char-counter {
             font-size: 0.7rem;
             text-align: right;
             color: var(--text-secondary);
             margin-top: 4px;
         }
+
         .button-group {
             display: flex;
             gap: 10px;
@@ -379,6 +436,7 @@
             justify-content: center;
             margin-top: 12px;
         }
+
         button {
             background: var(--button-primary);
             border: none;
@@ -390,9 +448,11 @@
             transition: 0.2s;
             font-size: 0.85rem;
         }
+
         button:hover {
             background: var(--button-hover);
         }
+
         .reviews-table {
             width: 100%;
             border-collapse: collapse;
@@ -401,28 +461,33 @@
             margin-top: 16px;
             font-size: 0.8rem;
         }
+
         .reviews-table th, .reviews-table td {
             border: 1px solid var(--border-color);
             padding: 6px;
             text-align: left;
             color: var(--text-primary);
         }
+
         .reviews-table th {
             background: var(--table-header);
             color: white;
             cursor: pointer;
             font-size: 0.8rem;
         }
+
         .delete-btn {
             background: #e74c3c;
             padding: 4px 8px;
             font-size: 0.7rem;
         }
+
         .edit-btn {
             background: #3498db;
             padding: 4px 8px;
             font-size: 0.7rem;
         }
+
         .rewatch-badge {
             background: var(--button-primary);
             color: white;
@@ -431,23 +496,27 @@
             border-radius: 12px;
             display: inline-block;
         }
+
         .theme-toggle {
             margin-left: auto;
             display: flex;
             align-items: center;
             gap: 6px;
         }
+
         .toggle-switch {
             position: relative;
             display: inline-block;
             width: 44px;
             height: 22px;
         }
+
         .toggle-switch input {
             opacity: 0;
             width: 0;
             height: 0;
         }
+
         .slider {
             position: absolute;
             cursor: pointer;
@@ -459,6 +528,7 @@
             transition: 0.4s;
             border-radius: 22px;
         }
+
         .slider:before {
             position: absolute;
             content: "";
@@ -470,12 +540,15 @@
             transition: 0.4s;
             border-radius: 50%;
         }
+
         input:checked + .slider {
             background-color: var(--button-primary);
         }
+
         input:checked + .slider:before {
             transform: translateX(22px);
         }
+
         .attribution {
             text-align: center;
             font-size: 0.7rem;
@@ -490,42 +563,53 @@
             flex-wrap: wrap;
             margin-top: auto;
         }
+
         .attribution a {
             color: var(--tmdb-link);
             text-decoration: none;
             font-weight: 500;
         }
+
         .attribution a:hover {
             text-decoration: underline;
             opacity: 0.8;
         }
+
         .tmdb-logo {
             height: 14px;
             vertical-align: middle;
         }
+
         .trends-stats {
             margin-top: 20px;
         }
+
         .trends-stats canvas {
             max-height: 350px;
             width: 100%;
         }
+
         .genre-table {
             margin-top: 16px;
             width: 100%;
             border-collapse: collapse;
             font-size: 0.8rem;
         }
+
         .genre-table th, .genre-table td {
             border: 1px solid var(--border-color);
             padding: 6px;
             text-align: left;
+            background: var(--bg-app);
+            color: var(--text-primary);
         }
+
         .genre-table th {
             cursor: pointer;
             background: var(--table-header);
             color: white;
         }
+
         .filter-sort-bar {
             display: flex;
             flex-wrap: wrap;
@@ -533,10 +617,12 @@
             gap: 10px;
             margin-bottom: 12px;
         }
+
         .filter-sort-bar .search-box {
             flex: 1;
             min-width: 140px;
         }
+
         .filter-sort-bar .search-box input {
             width: 100%;
             padding: 6px 8px;
@@ -546,26 +632,35 @@
             color: var(--text-primary);
             font-size: 0.8rem;
         }
+
         .sort-controls {
             display: flex;
             align-items: center;
             gap: 8px;
             flex-wrap: wrap;
         }
+
         .sort-controls select, .sort-controls button, .pagination-controls select {
             padding: 5px 8px;
             font-size: 0.8rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
         }
+
         .pagination-controls {
             display: flex;
             align-items: center;
             gap: 8px;
             margin-left: auto;
         }
+
         .page-nav {
             display: flex;
             gap: 4px;
         }
+
         .chart-toggle {
             display: flex;
             align-items: center;
@@ -573,10 +668,12 @@
             margin-bottom: 10px;
             flex-wrap: wrap;
         }
+
         .chart-toggle label {
             font-weight: bold;
             font-size: 0.9rem;
         }
+
         .chart-toggle select, .chart-toggle button {
             padding: 5px 8px;
             border-radius: 6px;
@@ -584,11 +681,13 @@
             background: var(--input-bg);
             color: var(--text-primary);
         }
+
         .export-buttons {
             display: flex;
             gap: 8px;
             margin-left: auto;
         }
+
         @media (max-width: 600px) {
             body { padding: 8px; }
             .app-container { border-radius: 16px; }
@@ -791,12 +890,11 @@
         document.documentElement.style.setProperty('--button-hover', theme.hover);
         document.documentElement.style.setProperty('--chart-dataset', theme.dataset);
         document.documentElement.style.setProperty('--tmdb-link', theme.primary);
-        // Update active tab background (the active tab already uses --button-primary)
         // Update charts if they exist
         if (radarChart) {
             radarChart.data.datasets[0].borderColor = theme.primary;
             radarChart.data.datasets[0].pointBackgroundColor = theme.primary;
-            radarChart.data.datasets[0].backgroundColor = `${theme.primary}33`; // 20% opacity
+            radarChart.data.datasets[0].backgroundColor = `${theme.primary}33`;
             radarChart.update();
         }
         if (genreChart && genreChart.config.type === 'bar') {
@@ -834,7 +932,7 @@
         renderTrends();
     });
 
-    // Theme (dark mode)
+    // Dark mode toggle (pure black)
     function initTheme() {
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark');
@@ -1137,7 +1235,18 @@
     }
     exportBtn.addEventListener('click', exportCompositeImage);
 
-    // Import JSON function
+    // Import/Export data
+    function exportJSON() {
+        const reviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
+        const dataStr = JSON.stringify(reviews, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'cinegraphs_reviews.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
     function importJSON() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -1171,19 +1280,6 @@
             reader.readAsText(file);
         };
         input.click();
-    }
-
-    // Export CSV (existing)
-    function exportJSON() {
-        const reviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
-        const dataStr = JSON.stringify(reviews, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'cinegraphs_reviews.json';
-        a.click();
-        URL.revokeObjectURL(url);
     }
     function exportCSV() {
         const reviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
@@ -1360,16 +1456,16 @@
         let bodyHtml = '';
         paginated.forEach(rev => {
             const rp = rev.reviewText ? rev.reviewText.substring(0, 50) + (rev.reviewText.length > 50 ? '…' : '') : '';
-            bodyHtml += `   <td>
-                 <td>${rev.title}</td>
-                 <td>${rev.overallScore}/${rev.maxScale}</td>
+            bodyHtml += `    <tr>
+                <td>${rev.title}</td>
+                <td>${rev.overallScore}/${rev.maxScale}</td>
                 ${rev.aspects.map(a => `<td>${a.score}</td>`).join('')}
-                 <td>${new Date(rev.dateReviewed).toLocaleDateString()}</td>
-                 <td>${rev.dateWatched ? new Date(rev.dateWatched).toLocaleDateString() : '-'}</td>
-                 <td>${rev.isRewatch ? '<span class="rewatch-badge">🔄 Rewatch</span>' : ''}</td>
+                <td>${new Date(rev.dateReviewed).toLocaleDateString()}</td>
+                <td>${rev.dateWatched ? new Date(rev.dateWatched).toLocaleDateString() : '-'}</td>
+                <td>${rev.isRewatch ? '<span class="rewatch-badge">🔄 Rewatch</span>' : ''}</td>
                 <td title="${rev.reviewText?.replace(/"/g, '&quot;') || ''}">${rp}</td>
-                 <td><button class="edit-btn" data-id="${rev.id}">Edit</button> <button class="delete-btn" data-id="${rev.id}">Delete</button></td>
-             </tr>`;
+                <td><button class="edit-btn" data-id="${rev.id}">Edit</button> <button class="delete-btn" data-id="${rev.id}">Delete</button></td>
+            </tr>`;
         });
         tb.innerHTML = bodyHtml;
 
@@ -1721,7 +1817,7 @@
         const maxCount = Math.max(...days.map(d => d.count), 1);
         const intensity = (count) => {
             const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--button-primary').trim();
-            return `rgba(26, 188, 156, ${count / maxCount})`; // we approximate, but keep the green look; it's okay
+            return `rgba(26, 188, 156, ${count / maxCount})`;
         };
         let html = '<div style="overflow-x: auto;"><table style="border-collapse: collapse;">';
         let weekRows = [];

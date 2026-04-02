@@ -44,7 +44,7 @@ async function generateChartImage(aspects, scores, maxScale, isDarkMode, primary
       datasets: [{
         label: 'Rating',
         data: scores,
-        backgroundColor: `${primaryColor}33`, // 20% opacity
+        backgroundColor: `${primaryColor}33`,
         borderColor: primaryColor,
         borderWidth: 2,
         pointBackgroundColor: primaryColor,
@@ -153,9 +153,9 @@ app.post('/export', async (req, res) => {
       primaryColor = '#1abc9c'
     } = req.body;
 
-    // Background color
-    const bgColor = isDarkMode ? { r: 22, g: 33, b: 62 } : { r: 255, g: 255, b: 255 };
-    const textColor = isDarkMode ? '#eee' : '#333';
+    // Background color – pure black for dark mode
+    const bgColor = isDarkMode ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
+    const textColor = isDarkMode ? '#fff' : '#333';
     const subTextColor = isDarkMode ? '#ccc' : '#666';
     const reviewColor = isDarkMode ? '#ddd' : '#444';
 
@@ -202,11 +202,10 @@ app.post('/export', async (req, res) => {
       .toBuffer();
     console.log('Poster resized size:', posterResized.length, 'bytes');
 
-    // 5. Build SVG overlay with dynamic colors (including primaryColor)
+    // 5. Build SVG overlay (with dynamic review font size)
     const compWidth = 1000;
     const compHeight = 1000;
 
-    // Determine review font size based on length
     let reviewFontSize = 14;
     let reviewLineLength = 60;
     if (reviewText) {
