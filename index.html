@@ -900,8 +900,9 @@
         if (activeTab) activeTab.style.backgroundColor = theme.primary;
         // Reset inactive tabs to the default tab-inactive color
         const inactiveTabs = document.querySelectorAll('.tab-btn:not(.active)');
+        const tabInactiveColor = getComputedStyle(document.documentElement).getPropertyValue('--tab-inactive').trim();
         inactiveTabs.forEach(btn => {
-            btn.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--tab-inactive').trim();
+            btn.style.backgroundColor = tabInactiveColor;
         });
         
         // Update buttons
@@ -1588,7 +1589,7 @@
         let bodyHtml = '';
         paginated.forEach(rev => {
             const rp = rev.reviewText ? rev.reviewText.substring(0, 50) + (rev.reviewText.length > 50 ? '…' : '') : '';
-            bodyHtml += `    <tr>
+            bodyHtml += `    <td>
                 <td>${rev.title}</td>
                 <td>${rev.overallScore}/${rev.maxScale}</td>
                 ${rev.aspects.map(a => `<td>${a.score}</td>`).join('')}
@@ -1741,7 +1742,7 @@
         }
         let html = '<table class="genre-table"><thead><tr><th>Director \\ Genre</th>';
         for (let g of genreList) html += `<th>${g}</th>`;
-        html += '</tr></thead><tbody>';
+        html += '</td></thead><tbody>';
         for (let d of directorList) {
             html += `<tr><td><strong>${d}</strong></td>`;
             for (let g of genreList) {
@@ -1752,7 +1753,7 @@
             }
             html += '</tr>';
         }
-        html += '</tbody><table>';
+        html += '</tbody></table>';
         container.innerHTML = html;
         container.style.display = 'block';
     }
@@ -1816,9 +1817,9 @@
         for (const actor of actors) {
             const entry = actorMap.get(actor);
             const avgActing = (entry.totalActing / entry.count).toFixed(1);
-            html += `<td><td><strong>${actor}</strong></td><td>${avgActing}</td><td>${entry.count}</td></tr>`;
+            html += `<tr><td><strong>${actor}</strong></td><td>${avgActing}</td><td>${entry.count}</td></tr>`;
         }
-        html += '</tbody></tr>';
+        html += '</tbody></table>';
         const container = document.getElementById('heatmapTableContainer');
         container.innerHTML = html;
         container.style.display = 'block';
@@ -1967,7 +1968,7 @@
                     html += `<td style="width: 30px; height: 30px; background: transparent;"></td>`;
                 }
             }
-            html += '<tr>';
+            html += '</tr>';
         }
         html += '</table></div><div style="margin-top: 10px;"><span>Darker color = more films watched that day</span></div>';
         const container = document.getElementById('heatmapTableContainer');
@@ -2095,28 +2096,20 @@
         editStatusSpan.innerText = `✏️ Editing: ${review.title}`;
     }
 
-    document.getElementById('applySortBtn').addEventListener('click', () => {
-        currentSortColumn = document.getElementById('sortColumn').value;
-        currentSortDir = document.getElementById('sortDirection').value;
-        currentPage = 1;
-        renderTrends();
+    // Tab switching with forced theme refresh to keep only active tab colored
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-tab');
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            document.getElementById(`${tab}-tab`).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Re-apply current theme to ensure only active tab has primary color
+            const currentTheme = colorThemeSelect.value;
+            setColorTheme(currentTheme);
+            if (tab === 'trends') renderTrends();
+        });
     });
-    document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
-        pageSize = parseInt(e.target.value);
-        currentPage = 1;
-        renderTrends();
-    });
-    document.getElementById('prevPageBtn').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTrends(); } });
-    document.getElementById('nextPageBtn').addEventListener('click', () => { if (currentPage < totalPages) { currentPage++; renderTrends(); } });
-    document.getElementById('historySearch').addEventListener('input', (e) => { currentSearchFilter = e.target.value; currentPage = 1; renderTrends(); });
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
-        const tab = btn.getAttribute('data-tab');
-        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-        document.getElementById(`${tab}-tab`).classList.add('active');
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if (tab === 'trends') renderTrends();
-    }));
 
     buildAspectControls();
     maxScaleSelect.addEventListener('change', () => { rebuildScoreDropdowns(); updateChart(); });
