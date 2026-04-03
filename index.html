@@ -147,7 +147,7 @@
         }
 
         .tab-btn.active {
-            background: var(--button-primary);
+            background: var(--button-primary) !important;
         }
 
         .tab-content {
@@ -846,7 +846,7 @@
     const TMDB_API_KEY = '0097bb696fb9a171ae5a66673be8a2a3';
     const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w200';
     const FANART_API_KEY = 'a6a74f76cc6e382e1f56ee0e4a4a9fb4';
-    const EXPORT_SERVER_URL = 'https://cinegraphs-export.onrender.com/export';  // 👈 REPLACE WITH YOUR RENDER URL
+    const EXPORT_SERVER_URL = 'https://your-server.onrender.com/export';  // 👈 REPLACE WITH YOUR RENDER URL
 
     // ==================== DOM Elements ====================
     const movieSearch = document.getElementById('movieSearch');
@@ -1329,7 +1329,7 @@
         URL.revokeObjectURL(url);
     }
 
-    // Import Letterboxd CSV
+    // Import Letterboxd CSV (case‑insensitive column detection)
     function importLetterboxdCSV() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -1341,14 +1341,14 @@
             reader.onload = (e) => {
                 const text = e.target.result;
                 const lines = text.split('\n');
-                const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-                const titleIdx = headers.findIndex(h => h.toLowerCase() === 'title');
-                const yearIdx = headers.findIndex(h => h.toLowerCase() === 'year');
-                const dateIdx = headers.findIndex(h => h.toLowerCase() === 'date');
-                const ratingIdx = headers.findIndex(h => h.toLowerCase() === 'rating');
-                const reviewIdx = headers.findIndex(h => h.toLowerCase() === 'review');
+                const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+                const titleIdx = headers.findIndex(h => h === 'title' || h === 'name');
+                const yearIdx = headers.findIndex(h => h === 'year');
+                const dateIdx = headers.findIndex(h => h === 'date');
+                const ratingIdx = headers.findIndex(h => h === 'rating');
+                const reviewIdx = headers.findIndex(h => h === 'review');
                 if (titleIdx === -1) {
-                    alert('CSV must contain a "Title" column.');
+                    alert('CSV must contain a "Title" or "Name" column.');
                     return;
                 }
                 const reviews = [];
@@ -1742,7 +1742,7 @@
         }
         let html = '<table class="genre-table"><thead><tr><th>Director \\ Genre</th>';
         for (let g of genreList) html += `<th>${g}</th>`;
-        html += '</td></thead><tbody>';
+        html += '<tr></thead><tbody>';
         for (let d of directorList) {
             html += `<tr><td><strong>${d}</strong></td>`;
             for (let g of genreList) {
