@@ -802,6 +802,7 @@
             <div class="export-buttons">
                 <button id="exportJSONBtn">📄 Export JSON</button>
                 <button id="importJSONBtn">📂 Import JSON</button>
+                <button id="importLetterboxdBtn">📽️ Import Letterboxd CSV</button>
                 <button id="exportCSVBtn">📊 Export CSV</button>
             </div>
         </div>
@@ -897,16 +898,17 @@
         // Update active tab (only the active one)
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) activeTab.style.backgroundColor = theme.primary;
-        // Reset inactive tabs to var(--tab-inactive)
-        document.querySelectorAll('.tab-btn:not(.active)').forEach(btn => {
-            btn.style.backgroundColor = '';
+        // Reset inactive tabs to the default tab-inactive color
+        const inactiveTabs = document.querySelectorAll('.tab-btn:not(.active)');
+        inactiveTabs.forEach(btn => {
+            btn.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--tab-inactive').trim();
         });
         
         // Update buttons
         const allButtons = document.querySelectorAll('button:not(.edit-btn):not(.delete-btn)');
         allButtons.forEach(btn => btn.style.backgroundColor = theme.primary);
-        const rewatchBadge = document.querySelector('.rewatch-badge');
-        if (rewatchBadge) rewatchBadge.style.backgroundColor = theme.primary;
+        const rewatchBadges = document.querySelectorAll('.rewatch-badge');
+        rewatchBadges.forEach(badge => badge.style.backgroundColor = theme.primary);
         const ratingCircle = document.querySelector('.overall-rating-circle');
         if (ratingCircle) ratingCircle.style.borderColor = theme.primary;
         if (editStatusSpan) editStatusSpan.style.color = theme.primary;
@@ -1326,8 +1328,121 @@
         URL.revokeObjectURL(url);
     }
 
+    // Import Letterboxd CSV
+    function importLetterboxdCSV() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv';
+        input.onchange = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                const titleIdx = headers.findIndex(h => h.toLowerCase() === 'title');
+                const yearIdx = headers.findIndex(h => h.toLowerCase() === 'year');
+                const dateIdx = headers.findIndex(h => h.toLowerCase() === 'date');
+                const ratingIdx = headers.findIndex(h => h.toLowerCase() === 'rating');
+                const reviewIdx = headers.findIndex(h => h.toLowerCase() === 'review');
+                if (titleIdx === -1) {
+                    alert('CSV must contain a "Title" column.');
+                    return;
+                }
+                const reviews = [];
+                const maxScale = getMaxScale(); // current rating scale
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    // Simple CSV parsing (handles quoted fields)
+                    const row = [];
+                    let inQuote = false;
+                    let current = '';
+                    for (let c of lines[i]) {
+                        if (c === '"') {
+                            inQuote = !inQuote;
+                        } else if (c === ',' && !inQuote) {
+                            row.push(current.trim().replace(/^"|"$/g, ''));
+                            current = '';
+                        } else {
+                            current += c;
+                        }
+                    }
+                    row.push(current.trim().replace(/^"|"$/g, ''));
+                    const title = row[titleIdx];
+                    if (!title) continue;
+                    let rating = 0;
+                    if (ratingIdx !== -1 && row[ratingIdx]) {
+                        // Letterboxd rating: 1-10 (with half stars). Convert to our scale.
+                        const lbRating = parseFloat(row[ratingIdx]);
+                        if (!isNaN(lbRating)) {
+                            rating = Math.round(lbRating * (maxScale / 10));
+                            if (rating < 0) rating = 0;
+                            if (rating > maxScale) rating = maxScale;
+                        }
+                    }
+                    let dateWatched = '';
+                    if (dateIdx !== -1 && row[dateIdx]) {
+                        const d = new Date(row[dateIdx]);
+                        if (!isNaN(d.getTime())) {
+                            dateWatched = d.toISOString().slice(0,10);
+                        }
+                    }
+                    let reviewText = '';
+                    if (reviewIdx !== -1 && row[reviewIdx]) reviewText = row[reviewIdx];
+                    // Create a review object with default aspect scores (all set to rating)
+                    const aspects = defaultAspectNames.map(name => ({
+                        name: name,
+                        score: rating
+                    }));
+                    const overallScore = rating;
+                    const reviewObj = {
+                        id: Date.now() + i,
+                        title: title,
+                        posterUrl: '',
+                        tmdbId: null,
+                        genres: [],
+                        director: '',
+                        cast: [],
+                        aspects: aspects,
+                        overallScore: overallScore,
+                        maxScale: maxScale,
+                        reviewText: reviewText,
+                        dateWatched: dateWatched,
+                        isRewatch: false,
+                        dateReviewed: new Date().toISOString()
+                    };
+                    reviews.push(reviewObj);
+                }
+                if (reviews.length === 0) {
+                    alert('No valid reviews found in CSV.');
+                    return;
+                }
+                let currentReviews = JSON.parse(localStorage.getItem('movieReviews') || '[]');
+                const merged = [...currentReviews];
+                for (const newRev of reviews) {
+                    // Check if a review with same title already exists (simple duplicate check)
+                    const existingIndex = merged.findIndex(r => r.title.toLowerCase() === newRev.title.toLowerCase());
+                    if (existingIndex !== -1) {
+                        if (confirm(`Review for "${newRev.title}" already exists. Overwrite?`)) {
+                            merged[existingIndex] = newRev;
+                        }
+                    } else {
+                        merged.push(newRev);
+                    }
+                }
+                localStorage.setItem('movieReviews', JSON.stringify(merged));
+                alert(`Imported ${reviews.length} reviews from Letterboxd. Total reviews: ${merged.length}`);
+                renderTrends();
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
     document.getElementById('exportJSONBtn').addEventListener('click', exportJSON);
     document.getElementById('importJSONBtn').addEventListener('click', importJSON);
+    document.getElementById('importLetterboxdBtn').addEventListener('click', importLetterboxdCSV);
     document.getElementById('exportCSVBtn').addEventListener('click', exportCSV);
 
     // Storage with edit support (include cast)
@@ -1626,7 +1741,7 @@
         }
         let html = '<table class="genre-table"><thead><tr><th>Director \\ Genre</th>';
         for (let g of genreList) html += `<th>${g}</th>`;
-        html += '</table></thead><tbody>';
+        html += '</tr></thead><tbody>';
         for (let d of directorList) {
             html += `<tr><td><strong>${d}</strong></td>`;
             for (let g of genreList) {
@@ -1637,7 +1752,7 @@
             }
             html += '</tr>';
         }
-        html += '</tbody></table>';
+        html += '</tbody><table>';
         container.innerHTML = html;
         container.style.display = 'block';
     }
@@ -1679,7 +1794,6 @@
         const actorMap = new Map(); // actor -> { totalActing, count }
         for (const rev of reviews) {
             if (!rev.cast || rev.cast.length === 0) continue;
-            // Find the "Acting" aspect score
             const actingAspect = rev.aspects.find(a => a.name.toLowerCase() === 'acting');
             if (!actingAspect) continue;
             for (const actor of rev.cast) {
@@ -1698,13 +1812,13 @@
             container.style.display = 'block';
             return;
         }
-        let html = '<table class="genre-table"><thead><tr><th>Actor</th><th>Avg Acting Score</th><th># Films</th><tr></thead><tbody>';
+        let html = '<table class="genre-table"><thead><tr><th>Actor</th><th>Avg Acting Score</th><th># Films</th></tr></thead><tbody>';
         for (const actor of actors) {
             const entry = actorMap.get(actor);
             const avgActing = (entry.totalActing / entry.count).toFixed(1);
-            html += `<tr><td><strong>${actor}</strong></td><td>${avgActing}</td><td>${entry.count}</td></tr>`;
+            html += `<td><td><strong>${actor}</strong></td><td>${avgActing}</td><td>${entry.count}</td></tr>`;
         }
-        html += '</tbody></table>';
+        html += '</tbody></tr>';
         const container = document.getElementById('heatmapTableContainer');
         container.innerHTML = html;
         container.style.display = 'block';
@@ -1807,7 +1921,6 @@
         const maxCount = Math.max(...days.map(d => d.count), 1);
         const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--button-primary').trim();
         const intensity = (count) => {
-            // Use theme color with varying opacity
             const rgb = hexToRgb(primaryColor);
             return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${count / maxCount})`;
         };
@@ -1854,7 +1967,7 @@
                     html += `<td style="width: 30px; height: 30px; background: transparent;"></td>`;
                 }
             }
-            html += '</tr>';
+            html += '<tr>';
         }
         html += '</table></div><div style="margin-top: 10px;"><span>Darker color = more films watched that day</span></div>';
         const container = document.getElementById('heatmapTableContainer');
