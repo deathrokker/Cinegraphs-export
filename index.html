@@ -890,6 +890,24 @@
         document.documentElement.style.setProperty('--button-hover', theme.hover);
         document.documentElement.style.setProperty('--chart-dataset', theme.dataset);
         document.documentElement.style.setProperty('--tmdb-link', theme.primary);
+        
+        // Force repaint of elements that might be stuck
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab) activeTab.style.backgroundColor = theme.primary;
+        const allButtons = document.querySelectorAll('button:not(.edit-btn):not(.delete-btn)');
+        allButtons.forEach(btn => btn.style.backgroundColor = theme.primary);
+        const rewatchBadge = document.querySelector('.rewatch-badge');
+        if (rewatchBadge) rewatchBadge.style.backgroundColor = theme.primary;
+        const ratingCircle = document.querySelector('.overall-rating-circle');
+        if (ratingCircle) ratingCircle.style.borderColor = theme.primary;
+        if (editStatusSpan) editStatusSpan.style.color = theme.primary;
+        
+        // Update slider toggle background if checked
+        const slider = document.querySelector('.slider');
+        if (slider && darkModeToggle.checked) {
+            slider.style.backgroundColor = theme.primary;
+        }
+        
         // Update charts if they exist
         if (radarChart) {
             radarChart.data.datasets[0].borderColor = theme.primary;
@@ -901,16 +919,6 @@
             genreChart.data.datasets[0].backgroundColor = theme.primary;
             genreChart.update();
         }
-        // Update slider toggle background if checked
-        const slider = document.querySelector('.slider');
-        if (slider && darkModeToggle.checked) {
-            slider.style.backgroundColor = theme.primary;
-        }
-        // Update overall rating circle border
-        const ratingCircle = document.querySelector('.overall-rating-circle');
-        if (ratingCircle) ratingCircle.style.borderColor = theme.primary;
-        // Update edit status color
-        if (editStatusSpan) editStatusSpan.style.color = theme.primary;
     }
     colorThemeSelect.addEventListener('change', (e) => {
         localStorage.setItem('colorTheme', e.target.value);
