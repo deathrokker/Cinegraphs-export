@@ -59,6 +59,9 @@
             padding: 12px;
             transition: background 0.3s, color 0.3s;
             color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
         .app-container {
@@ -70,7 +73,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            min-height: calc(100vh - 24px);
+            flex: 1;
         }
 
         .header {
@@ -811,7 +814,7 @@
             <table class="genre-table" id="genreTable">
                 <thead><th data-sort="genre">Genre</th><th data-sort="count"># of Films</th><th data-sort="avg">Avg. Rating</th></thead>
                 <tbody></tbody>
-             ?>
+            </table>
         </div>
         <h3>Review History</h3>
         <div class="filter-sort-bar">
@@ -826,7 +829,7 @@
                 <div class="page-nav"><button id="prevPageBtn" disabled>◀ Prev</button><span id="pageInfo"></span><button id="nextPageBtn">Next ▶</button></div>
             </div>
         </div>
-        <div style="overflow-x: auto;"><table class="reviews-table" id="reviewsTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody>? </div>
+        <div style="overflow-x: auto;"><table class="reviews-table" id="reviewsTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
     </div>
 
     <div class="attribution">
@@ -842,7 +845,7 @@
     const TMDB_API_KEY = '0097bb696fb9a171ae5a66673be8a2a3';
     const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w200';
     const FANART_API_KEY = 'a6a74f76cc6e382e1f56ee0e4a4a9fb4';
-    const EXPORT_SERVER_URL = 'https://cinegraphs-export.onrender.com/export';  // 👈 REPLACE WITH YOUR RENDER URL
+    const EXPORT_SERVER_URL = 'https://your-server.onrender.com/export';  // 👈 REPLACE WITH YOUR RENDER URL
 
     // ==================== DOM Elements ====================
     const movieSearch = document.getElementById('movieSearch');
@@ -891,9 +894,15 @@
         document.documentElement.style.setProperty('--chart-dataset', theme.dataset);
         document.documentElement.style.setProperty('--tmdb-link', theme.primary);
         
-        // Force repaint of elements that might be stuck
+        // Update active tab (only the active one)
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) activeTab.style.backgroundColor = theme.primary;
+        // Reset inactive tabs to var(--tab-inactive)
+        document.querySelectorAll('.tab-btn:not(.active)').forEach(btn => {
+            btn.style.backgroundColor = '';
+        });
+        
+        // Update buttons
         const allButtons = document.querySelectorAll('button:not(.edit-btn):not(.delete-btn)');
         allButtons.forEach(btn => btn.style.backgroundColor = theme.primary);
         const rewatchBadge = document.querySelector('.rewatch-badge');
@@ -908,7 +917,7 @@
             slider.style.backgroundColor = theme.primary;
         }
         
-        // Update charts if they exist
+        // Update charts
         if (radarChart) {
             radarChart.data.datasets[0].borderColor = theme.primary;
             radarChart.data.datasets[0].pointBackgroundColor = theme.primary;
@@ -1617,7 +1626,7 @@
         }
         let html = '<table class="genre-table"><thead><tr><th>Director \\ Genre</th>';
         for (let g of genreList) html += `<th>${g}</th>`;
-        html += '</tr></thead><tbody>';
+        html += '</table></thead><tbody>';
         for (let d of directorList) {
             html += `<tr><td><strong>${d}</strong></td>`;
             for (let g of genreList) {
@@ -1635,22 +1644,16 @@
 
     // Director stats
     function renderDirectorStats(reviews) {
-        const directorMap = new Map(); // director -> { totalScore, count, aspects: { aspectName: totalScore, count } }
+        const directorMap = new Map();
         for (const rev of reviews) {
             if (!rev.director) continue;
             const dir = rev.director;
             if (!directorMap.has(dir)) {
-                directorMap.set(dir, { totalScore: 0, count: 0, aspects: new Map() });
+                directorMap.set(dir, { totalScore: 0, count: 0 });
             }
             const entry = directorMap.get(dir);
             entry.totalScore += rev.overallScore;
             entry.count++;
-            for (const asp of rev.aspects) {
-                if (!entry.aspects.has(asp.name)) entry.aspects.set(asp.name, { total: 0, count: 0 });
-                const aspEntry = entry.aspects.get(asp.name);
-                aspEntry.total += asp.score;
-                aspEntry.count++;
-            }
         }
         const directors = Array.from(directorMap.keys()).sort();
         if (directors.length === 0) {
@@ -1663,16 +1666,7 @@
         for (const dir of directors) {
             const entry = directorMap.get(dir);
             const avgOverall = (entry.totalScore / entry.count).toFixed(1);
-            let bestAspect = '';
-            let bestScore = -1;
-            for (let [name, aspEntry] of entry.aspects) {
-                const avg = aspEntry.total / aspEntry.count;
-                if (avg > bestScore) {
-                    bestScore = avg;
-                    bestAspect = name;
-                }
-            }
-            html += `<tr><td><strong>${dir}</strong></td><td>${avgOverall}</td><td>${entry.count}</td><td>${bestAspect} (${bestScore.toFixed(1)})</td></tr>`;
+            html += `<tr><td><strong>${dir}</strong></td><td>${avgOverall}</td><td>${entry.count}</td><td>-</td></tr>`;
         }
         html += '</tbody></table>';
         const container = document.getElementById('heatmapTableContainer');
@@ -1680,47 +1674,35 @@
         container.style.display = 'block';
     }
 
-    // Actor stats
+    // Actor stats: show average Acting score
     function renderActorStats(reviews) {
-        const actorMap = new Map(); // actor -> { totalScore, count, aspects: { aspectName: totalScore, count } }
+        const actorMap = new Map(); // actor -> { totalActing, count }
         for (const rev of reviews) {
             if (!rev.cast || rev.cast.length === 0) continue;
+            // Find the "Acting" aspect score
+            const actingAspect = rev.aspects.find(a => a.name.toLowerCase() === 'acting');
+            if (!actingAspect) continue;
             for (const actor of rev.cast) {
                 if (!actorMap.has(actor)) {
-                    actorMap.set(actor, { totalScore: 0, count: 0, aspects: new Map() });
+                    actorMap.set(actor, { totalActing: 0, count: 0 });
                 }
                 const entry = actorMap.get(actor);
-                entry.totalScore += rev.overallScore;
+                entry.totalActing += actingAspect.score;
                 entry.count++;
-                for (const asp of rev.aspects) {
-                    if (!entry.aspects.has(asp.name)) entry.aspects.set(asp.name, { total: 0, count: 0 });
-                    const aspEntry = entry.aspects.get(asp.name);
-                    aspEntry.total += asp.score;
-                    aspEntry.count++;
-                }
             }
         }
         const actors = Array.from(actorMap.keys()).sort();
         if (actors.length === 0) {
             const container = document.getElementById('heatmapTableContainer');
-            container.innerHTML = '<div style="text-align:center; padding:20px;">No actor data yet. Save some reviews with cast info.</div>';
+            container.innerHTML = '<div style="text-align:center; padding:20px;">No actor data yet. Save some reviews with cast info and an "Acting" aspect.</div>';
             container.style.display = 'block';
             return;
         }
-        let html = '<table class="genre-table"><thead><tr><th>Actor</th><th>Avg Overall</th><th># Films</th><th>Best Aspect</th></tr></thead><tbody>';
+        let html = '<table class="genre-table"><thead><tr><th>Actor</th><th>Avg Acting Score</th><th># Films</th><tr></thead><tbody>';
         for (const actor of actors) {
             const entry = actorMap.get(actor);
-            const avgOverall = (entry.totalScore / entry.count).toFixed(1);
-            let bestAspect = '';
-            let bestScore = -1;
-            for (let [name, aspEntry] of entry.aspects) {
-                const avg = aspEntry.total / aspEntry.count;
-                if (avg > bestScore) {
-                    bestScore = avg;
-                    bestAspect = name;
-                }
-            }
-            html += `<tr><td><strong>${actor}</strong></td><td>${avgOverall}</td><td>${entry.count}</td><td>${bestAspect} (${bestScore.toFixed(1)})</td></tr>`;
+            const avgActing = (entry.totalActing / entry.count).toFixed(1);
+            html += `<tr><td><strong>${actor}</strong></td><td>${avgActing}</td><td>${entry.count}</td></tr>`;
         }
         html += '</tbody></table>';
         const container = document.getElementById('heatmapTableContainer');
@@ -1805,7 +1787,7 @@
         });
     }
 
-    // Viewing diary heatmap (simplified grid)
+    // Viewing diary heatmap (with theme color)
     function renderViewingDiary(reviews) {
         const dateCount = new Map();
         for (const rev of reviews) {
@@ -1823,10 +1805,19 @@
             days.push({ date: dateStr, count: dateCount.get(dateStr) || 0 });
         }
         const maxCount = Math.max(...days.map(d => d.count), 1);
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--button-primary').trim();
         const intensity = (count) => {
-            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--button-primary').trim();
-            return `rgba(26, 188, 156, ${count / maxCount})`;
+            // Use theme color with varying opacity
+            const rgb = hexToRgb(primaryColor);
+            return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${count / maxCount})`;
         };
+        function hexToRgb(hex) {
+            hex = hex.replace('#', '');
+            const r = parseInt(hex.substring(0,2), 16);
+            const g = parseInt(hex.substring(2,4), 16);
+            const b = parseInt(hex.substring(4,6), 16);
+            return { r, g, b };
+        }
         let html = '<div style="overflow-x: auto;"><table style="border-collapse: collapse;">';
         let weekRows = [];
         let currentWeek = [];
@@ -1865,7 +1856,7 @@
             }
             html += '</tr>';
         }
-        html += '</table></div><div style="margin-top: 10px;"><span>Darker green = more films watched that day</span></div>';
+        html += '</table></div><div style="margin-top: 10px;"><span>Darker color = more films watched that day</span></div>';
         const container = document.getElementById('heatmapTableContainer');
         container.innerHTML = html;
         container.style.display = 'block';
