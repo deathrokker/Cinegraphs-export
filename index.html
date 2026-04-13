@@ -18,14 +18,14 @@
             --border-color: #e2e8f0;
             --input-bg: #ffffff;
             --card-bg: #f8fafc;
-            --button-primary: #1abc9c;
-            --button-hover: #16a085;
+            --button-primary: #e67e22;
+            --button-hover: #d35400;
             --tab-bg: #2d3748;
             --tab-inactive: #4a5568;
             --table-header: #2d3748;
             --attribution-bg: #f1f5f9;
             --chart-grid: #e2e8f0;
-            --tmdb-link: #1abc9c;
+            --tmdb-link: #e67e22;
         }
 
         /* ==================== DARK MODE (pure black) ==================== */
@@ -37,14 +37,14 @@
             --border-color: #2a2a2a;
             --input-bg: #1a1a1a;
             --card-bg: #0f0f0f;
-            --button-primary: #1abc9c;
-            --button-hover: #16a085;
+            --button-primary: #e67e22;
+            --button-hover: #d35400;
             --tab-bg: #0a0a0a;
             --tab-inactive: #1a1a1a;
             --table-header: #1a1a1a;
             --attribution-bg: #0f0f0f;
             --chart-grid: #2a2a2a;
-            --tmdb-link: #1abc9c;
+            --tmdb-link: #e67e22;
         }
 
         * {
@@ -113,16 +113,6 @@
             display: flex;
             align-items: center;
             gap: 12px;
-        }
-
-        .theme-selector {
-            background: var(--tab-inactive);
-            border: none;
-            color: white;
-            padding: 6px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            cursor: pointer;
         }
 
         .tabs {
@@ -715,13 +705,6 @@
         <div class="logo-placeholder">Logo</div>
         <h1>Cinegraphs</h1>
         <div class="header-controls">
-            <select id="colorThemeSelect" class="theme-selector">
-                <option value="green">🎨 Green (Default)</option>
-                <option value="blue">🔵 Blue</option>
-                <option value="purple">🟣 Purple</option>
-                <option value="orange">🟠 Orange</option>
-                <option value="pink">🌸 Pink</option>
-            </select>
             <div class="theme-toggle">
                 <span>🌞</span>
                 <label class="toggle-switch"><input type="checkbox" id="darkModeToggle"><span class="slider"></span></label>
@@ -804,6 +787,7 @@
                 <button id="importJSONBtn">📂 Import JSON</button>
                 <button id="importLetterboxdBtn">📽️ Import Letterboxd CSV</button>
                 <button id="exportCSVBtn">📊 Export CSV</button>
+                <button id="deleteAllBtn" style="background: #e74c3c;">🗑️ Delete All Reviews</button>
             </div>
         </div>
         <div class="trends-stats" id="trendsChartContainer">
@@ -830,7 +814,7 @@
                 <div class="page-nav"><button id="prevPageBtn" disabled>◀ Prev</button><span id="pageInfo"></span><button id="nextPageBtn">Next ▶</button></div>
             </div>
         </div>
-        <div style="overflow-x: auto;"><table class="reviews-table" id="reviewsTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></tr></div>
+        <div style="overflow-x: auto;"><table class="reviews-table" id="reviewsTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
     </div>
 
     <div class="attribution">
@@ -846,7 +830,7 @@
     const TMDB_API_KEY = '0097bb696fb9a171ae5a66673be8a2a3';
     const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w200';
     const FANART_API_KEY = 'a6a74f76cc6e382e1f56ee0e4a4a9fb4';
-    const EXPORT_SERVER_URL = 'https://cinegraphs-export.onrender.com/export';  // 👈 REPLACE WITH YOUR RENDER URL
+    const EXPORT_SERVER_URL = 'https://your-server.onrender.com/export';  // 👈 REPLACE WITH YOUR RENDER URL
 
     // ==================== DOM Elements ====================
     const movieSearch = document.getElementById('movieSearch');
@@ -869,7 +853,6 @@
     const editStatusSpan = document.getElementById('editStatus');
     const trendsChartTypeSelect = document.getElementById('trendsChartType');
     const isRewatchCheckbox = document.getElementById('isRewatchCheckbox');
-    const colorThemeSelect = document.getElementById('colorThemeSelect');
 
     let radarChart = null, genreChart = null;
     let aspectNameInputs = [], scoreSelects = [];
@@ -878,71 +861,6 @@
     let manualPosterOverride = null;
     let editingReviewId = null;
     let currentTrendsChartType = 'genre';
-
-    // Theme colors (primary, hover)
-    const themes = {
-        green: { primary: '#1abc9c', hover: '#16a085', dataset: '#1abc9c' },
-        blue: { primary: '#3498db', hover: '#2980b9', dataset: '#3498db' },
-        purple: { primary: '#9b59b6', hover: '#8e44ad', dataset: '#9b59b6' },
-        orange: { primary: '#e67e22', hover: '#d35400', dataset: '#e67e22' },
-        pink: { primary: '#e84393', hover: '#c2185b', dataset: '#e84393' }
-    };
-    function setColorTheme(themeName) {
-        const theme = themes[themeName];
-        if (!theme) return;
-        document.documentElement.style.setProperty('--button-primary', theme.primary);
-        document.documentElement.style.setProperty('--button-hover', theme.hover);
-        document.documentElement.style.setProperty('--chart-dataset', theme.dataset);
-        document.documentElement.style.setProperty('--tmdb-link', theme.primary);
-        
-        // Reset inactive tabs to default color (inline style)
-        const inactiveTabs = document.querySelectorAll('.tab-btn:not(.active)');
-        const tabInactiveColor = getComputedStyle(document.documentElement).getPropertyValue('--tab-inactive').trim();
-        inactiveTabs.forEach(btn => {
-            btn.style.backgroundColor = tabInactiveColor;
-        });
-        // Active tab uses CSS variable (via !important), no inline style needed
-        
-        // Update buttons
-        const allButtons = document.querySelectorAll('button:not(.edit-btn):not(.delete-btn)');
-        allButtons.forEach(btn => btn.style.backgroundColor = theme.primary);
-        const rewatchBadges = document.querySelectorAll('.rewatch-badge');
-        rewatchBadges.forEach(badge => badge.style.backgroundColor = theme.primary);
-        const ratingCircle = document.querySelector('.overall-rating-circle');
-        if (ratingCircle) ratingCircle.style.borderColor = theme.primary;
-        if (editStatusSpan) editStatusSpan.style.color = theme.primary;
-        
-        // Update slider toggle background if checked
-        const slider = document.querySelector('.slider');
-        if (slider && darkModeToggle.checked) {
-            slider.style.backgroundColor = theme.primary;
-        }
-        
-        // Update charts
-        if (radarChart) {
-            radarChart.data.datasets[0].borderColor = theme.primary;
-            radarChart.data.datasets[0].pointBackgroundColor = theme.primary;
-            radarChart.data.datasets[0].backgroundColor = `${theme.primary}33`;
-            radarChart.update();
-        }
-        if (genreChart && genreChart.config.type === 'bar') {
-            genreChart.data.datasets[0].backgroundColor = theme.primary;
-            genreChart.update();
-        }
-    }
-    colorThemeSelect.addEventListener('change', (e) => {
-        localStorage.setItem('colorTheme', e.target.value);
-        setColorTheme(e.target.value);
-    });
-    function initColorTheme() {
-        const saved = localStorage.getItem('colorTheme');
-        if (saved && themes[saved]) {
-            colorThemeSelect.value = saved;
-            setColorTheme(saved);
-        } else {
-            setColorTheme('green');
-        }
-    }
 
     reviewTextarea.addEventListener('input', () => { charCountSpan.innerText = reviewTextarea.value.length; });
     trendsChartTypeSelect.addEventListener('change', (e) => {
@@ -973,7 +891,6 @@
         radarChart.update();
     }
     initTheme();
-    initColorTheme();
 
     // Aspect names persistence
     const ASPECT_NAMES_STORAGE_KEY = 'movieReviewAspectNames';
@@ -1327,6 +1244,15 @@
         URL.revokeObjectURL(url);
     }
 
+    // Delete all reviews
+    function deleteAllReviews() {
+        if (confirm('⚠️ Delete ALL reviews? This action cannot be undone.')) {
+            localStorage.removeItem('movieReviews');
+            alert('All reviews have been deleted.');
+            renderTrends();
+        }
+    }
+
     // Import Letterboxd CSV with automatic TMDB data fetch
     async function importLetterboxdCSV() {
         const input = document.createElement('input');
@@ -1483,6 +1409,7 @@
     document.getElementById('importJSONBtn').addEventListener('click', importJSON);
     document.getElementById('importLetterboxdBtn').addEventListener('click', importLetterboxdCSV);
     document.getElementById('exportCSVBtn').addEventListener('click', exportCSV);
+    document.getElementById('deleteAllBtn').addEventListener('click', deleteAllReviews);
 
     // Storage with edit support (include cast)
     async function getCurrentReviewObject() {
@@ -1791,7 +1718,7 @@
             }
             html += '</tr>';
         }
-        html += '</tbody></tr>';
+        html += '</tbody><tr>';
         container.innerHTML = html;
         container.style.display = 'block';
     }
@@ -1822,7 +1749,7 @@
             const avgOverall = (entry.totalScore / entry.count).toFixed(1);
             html += `<tr><td><strong>${dir}</strong></td><td>${avgOverall}</td><td>${entry.count}</td><td>-</td></tr>`;
         }
-        html += '</tbody></table>';
+        html += '</tbody></tr>';
         const container = document.getElementById('heatmapTableContainer');
         container.innerHTML = html;
         container.style.display = 'block';
@@ -1855,7 +1782,7 @@
         for (const actor of actors) {
             const entry = actorMap.get(actor);
             const avgActing = (entry.totalActing / entry.count).toFixed(1);
-            html += `<tr><td><strong>${actor}</strong></td><td>${avgActing}</td><td>${entry.count}</td></tr>`;
+            html += `<td><strong>${actor}</strong></td><td>${avgActing}</td><td>${entry.count}</td></tr>`;
         }
         html += '</tbody></table>';
         const container = document.getElementById('heatmapTableContainer');
@@ -2142,9 +2069,6 @@
             document.getElementById(`${tab}-tab`).classList.add('active');
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            // Re-apply current theme to ensure only active tab has primary color
-            const currentTheme = colorThemeSelect.value;
-            setColorTheme(currentTheme);
             if (tab === 'trends') renderTrends();
         });
     });
